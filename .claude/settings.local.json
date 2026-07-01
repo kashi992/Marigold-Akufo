@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(cp \"WhatsApp Image 2026-07-01 at 11.09.20 AM \\(1\\).jpeg\" artwork-01.jpg)",
+      "Bash(cp \"WhatsApp Image 2026-07-01 at 11.09.21 AM.jpeg\" artwork-02.jpg)",
+      "Bash(cp \"WhatsApp Image 2026-07-01 at 11.09.22 AM \\(1\\).jpeg\" artwork-03.jpg)",
+      "Bash(cp \"WhatsApp Image 2026-07-01 at 11.09.22 AM.jpeg\" artwork-04.jpg)",
+      "Bash(cp \"WhatsApp Image 2026-07-01 at 11.09.23 AM \\(1\\).jpeg\" artwork-05.jpg)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:sophiehustin.com)",
+      "Bash(curl -s \"https://sophiehustin.com/\")",
+      "Bash(curl -s \"https://sophiehustin.com/peintures/\")",
+      "Bash(curl -s \"https://sophiehustin.com/actualites\")",
+      "Bash(curl -s \"https://sophiehustin.com/contact\")",
+      "Bash(curl -v \"https://sophiehustin.com/peintures/\")",
+      "Bash(find 'D:/React projects/marigold akufo-addo/Reference data/MariGold/sophiehustin.com/wp-content/' -name *.css -o -name *.js)",
+      "Bash(tr '}' '\\\\n')",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//d/React projects/marigold akufo-addo/src/pages/**)",
+      "Bash(done)",
+      "Bash(python3:*)"
+    ]
+  }
+}

@@ -1,0 +1,302 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import Hammer from 'hammerjs'
+import Lenis from '@studio-freight/lenis'
+import { useSite } from '../context/SiteContext'
+import { paintings, drawings } from '../data/artworks'
+
+const allWorks = [
+  ...paintings.map(w => ({ ...w, collection: 'paintings' })),
+  ...drawings.map(w => ({ ...w, collection: 'drawings' })),
+]
+
+function SplitChars({ text }) {
+  return (
+    <>
+      {text.split('').map((char, i) => (
+        <span key={i} className="nav-char" style={{ '--i': i }}>
+          {char === ' ' ? '\u00A0' : char}
+        </span>
+      ))}
+    </>
+  )
+}
+
+// Phases: 'hero' | 'exiting' | 'works' | 'returning'
+export default function Home({ navigateTo }) {
+  const { addClass, removeClass } = useSite()
+  const location = useLocation()
+  const startOnWorks = new URLSearchParams(location.search).get('works') === '1'
+  const initialPhase = startOnWorks ? 'works' : 'hero'
+  const [phase, setPhase] = useState(initialPhase)
+  const phaseRef = useRef(initialPhase)
+  const heroRef = useRef(null)
+  const worksWrapRef = useRef(null)
+  const lenisRef = useRef(null)
+  const worksScrollY = useRef(0)
+
+  // Local overlay state — true = covering, false = lifted
+  const [covering, setCovering] = useState(false)
+  // Direction ref so onTransitionEnd knows what just finished
+  const coverDirectionRef = useRef(null) // 'covering' | 'lifting'
+  // Callback to run once overlay fully covers
+  const onCoveredCallbackRef = useRef(null)
+
+  const setPhaseSync = (p) => { phaseRef.current = p; setPhase(p) }
+
+  useEffect(() => {
+    removeClass('is-peintures')
+    removeClass('is-sculptures')
+    removeClass('is-white')
+    removeClass('is-section')
+    removeClass('is-contact')
+    removeClass('is-hero-exiting')
+    addClass('is-home')
+
+    if (startOnWorks) {
+      addClass('is-home-works')
+    } else {
+      removeClass('is-home-works')
+    }
+
+    const t1 = setTimeout(() => addClass('is-on'), 50)
+    const t2 = setTimeout(() => addClass('is-loaded'), 300)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      removeClass('is-home')
+      removeClass('is-hero-exiting')
+      removeClass('is-home-works')
+    }
+  }, [addClass, removeClass])
+
+  // Called when local overlay's CSS transition ends
+  const handleCoverTransitionEnd = useCallback((e) => {
+    if (e.propertyName !== 'transform') return
+
+    if (coverDirectionRef.current === 'covering') {
+      // Overlay has FULLY covered the screen — safe to swap content
+      coverDirectionRef.current = 'lifting'
+      if (onCoveredCallbackRef.current) {
+        onCoveredCallbackRef.current()
+        onCoveredCallbackRef.current = null
+      }
+      // Lift the overlay
+      setCovering(false)
+    }
+    // 'lifting' end — nothing to do
+  }, [])
+
+  // Trigger the local overlay to cover, run callback when fully covered
+  const coverScreen = useCallback((onCovered) => {
+    onCoveredCallbackRef.current = onCovered
+    coverDirectionRef.current = 'covering'
+    setCovering(true)
+  }, [])
+
+  // ── FORWARD: hero → works ──
+  const startExit = useCallback(() => {
+    if (phaseRef.current !== 'hero') return
+    setPhaseSync('exiting')
+
+    // Step 1: chars fade out
+    addClass('is-hero-exiting')
+
+    // Step 2: once chars are gone, cover screen then swap
+    const t = setTimeout(() => {
+      coverScreen(() => {
+        // Runs exactly when overlay fully covers — swap content underneath
+        setPhaseSync('works')
+        addClass('is-home-works')
+        removeClass('is-hero-exiting')
+        if (worksWrapRef.current) worksWrapRef.current.scrollTop = 0
+      })
+    }, 2800)
+
+    return () => clearTimeout(t)
+  }, [addClass, removeClass, coverScreen])
+
+  // ── REVERSE: works → hero ──
+  const startReturn = useCallback(() => {
+    if (phaseRef.current !== 'works') return
+    setPhaseSync('returning')
+
+    coverScreen(() => {
+      // Runs exactly when overlay fully covers — restore hero underneath
+      setPhaseSync('hero')
+      removeClass('is-home-works')
+      // Reset line + chars to hidden state so they can animate back in
+      addClass('is-hero-exiting')
+      removeClass('is-loaded')
+
+      // One rAF so browser paints the reset, then animate everything back in
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        addClass('is-loaded')
+        setTimeout(() => removeClass('is-hero-exiting'), 600)
+      }))
+    })
+  }, [addClass, removeClass, coverScreen])
+
+  // Wheel on hero (desktop)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || phase !== 'hero') return
+    const onWheel = (e) => {
+      if (e.deltaY > 0) { e.preventDefault(); startExit() }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [phase, startExit])
+
+  // Hammer on hero (touch)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || phase !== 'hero') return
+    const hammer = new Hammer.Manager(el)
+    hammer.add(new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 20 }))
+    hammer.on('panup', () => startExit())
+    return () => hammer.destroy()
+  }, [phase, startExit])
+
+  // Lenis on works section
+  useEffect(() => {
+    const el = worksWrapRef.current
+    if (!el || phase !== 'works') return
+
+    el.scrollTop = 0
+
+    const lenis = new Lenis({
+      wrapper: el,
+      content: el.firstElementChild,
+      duration: 5,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 0.4,
+      touchMultiplier: 0.8,
+    })
+    lenis.scrollTo(0, { immediate: true })
+    lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })
+    lenisRef.current = lenis
+
+    let rafId
+    function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
+    rafId = requestAnimationFrame(raf)
+
+    return () => { cancelAnimationFrame(rafId); lenis.destroy(); lenisRef.current = null; worksScrollY.current = 0 }
+  }, [phase])
+
+  // Wheel on works — scroll up at top goes back to hero (capture fires before Lenis)
+  useEffect(() => {
+    const el = worksWrapRef.current
+    if (!el || phase !== 'works') return
+    const onWheel = (e) => {
+      if (e.deltaY < 0 && worksScrollY.current <= 5) {
+        e.preventDefault()
+        e.stopPropagation()
+        startReturn()
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    return () => el.removeEventListener('wheel', onWheel, { capture: true })
+  }, [phase, startReturn])
+
+  // Hammer on works (touch)
+  useEffect(() => {
+    const el = worksWrapRef.current
+    if (!el || phase !== 'works') return
+    const hammer = new Hammer.Manager(el)
+    hammer.add(new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 20 }))
+    hammer.on('pandown', () => {
+      if (worksScrollY.current <= 5) startReturn()
+    })
+    return () => hammer.destroy()
+  }, [phase, startReturn])
+
+  const [worksExiting, setWorksExiting] = useState(false)
+
+  const handleWorkClick = (work) => {
+    if (worksExiting) return
+    setWorksExiting(true)
+
+    // Step 1: "Our Work" chars + items start disappearing (CSS handles stagger)
+    // Step 2: after animations, cover screen then navigate
+    const t = setTimeout(() => {
+      coverScreen(() => {
+        navigateTo(`/${work.collection}/${work.slug}`)
+        setWorksExiting(false)
+      })
+    }, 1800)
+
+    return () => clearTimeout(t)
+  }
+
+  const showHero = phase === 'hero' || phase === 'exiting'
+  const showWorks = phase === 'works' || phase === 'returning'
+
+  return (
+    <section className="page page-home">
+
+      {/* Local overlay — fully controlled by React, no body-class conflicts */}
+      <div
+        className={`home-cover${covering ? ' home-cover--in' : ''}`}
+        onTransitionEnd={handleCoverTransitionEnd}
+      />
+
+      {/* ── HERO ── */}
+      <div
+        ref={heroRef}
+        className="home-hero"
+        style={{ opacity: showHero ? 1 : 0, pointerEvents: showHero ? 'auto' : 'none' }}
+      >
+        <div className="home-hero-bg" style={{ backgroundImage: `url('/images/hero.jpg')` }} />
+        <div className="home-hero-center">
+          <p className="home-hero-title">
+            <SplitChars text="marigold akufo-addo" />
+          </p>
+          <div className="home-hero-line" />
+        </div>
+      </div>
+
+      {/* ── OUR WORK ── */}
+      <div
+        ref={worksWrapRef}
+        className={`home-works-wrapper${worksExiting ? ' works-exiting' : ''}`}
+        style={{ opacity: showWorks ? 1 : 0, pointerEvents: showWorks ? 'auto' : 'none', zIndex: showWorks ? 3 : 1 }}
+      >
+        <div className="home-works-content">
+          <div className="home-works">
+            <div className="home-works-left">
+              {allWorks.map((work, idx) => (
+                <div
+                  key={`${work.collection}-${work.slug}`}
+                  className="home-work-item"
+                  onClick={() => handleWorkClick(work)}
+                  style={{ cursor: 'none', '--item-i': idx }}
+                >
+                  <div className="home-work-img" style={{ backgroundImage: `url(${work.src})` }} />
+                  <span className="home-work-caption">{work.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right sticky label — split into chars for exit animation */}
+        <div className="home-works-right">
+          <p className="home-works-label">
+            {'Our'.split('').map((c, i) => (
+              <span key={i} className="label-char" style={{ '--i': i }}>{c}</span>
+            ))}
+            <br />
+            {'Work'.split('').map((c, i) => (
+              <span key={i} className="label-char" style={{ '--i': i + 4 }}>{c}</span>
+            ))}
+          </p>
+        </div>
+      </div>
+
+    </section>
+  )
+}
