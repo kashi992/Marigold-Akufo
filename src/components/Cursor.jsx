@@ -20,16 +20,9 @@ export default function Cursor() {
     let raf
 
     const b = document.body
-    let lastTarget = null
     const onMove = (e) => {
       mouse.x = e.clientX
       mouse.y = e.clientY
-      // Force hide OS cursor on every element touched
-      if (e.target !== lastTarget) {
-        if (lastTarget) lastTarget.style.removeProperty('cursor')
-        lastTarget = e.target
-        e.target.style.setProperty('cursor', 'none', 'important')
-      }
 
       if (isDetailPage) {
         if (e.target.closest('.work-zone--prev')) {
@@ -79,28 +72,30 @@ export default function Cursor() {
     }
   }, [isDetailPage])
 
-  // Link hover detection — direct DOM classList manipulation (no React state delay)
+  // Link hover detection via mousemove + elementFromPoint — checks exactly what's under cursor
   useEffect(() => {
     const b = document.body
-    const onOver = (e) => {
-      const el = e.target
+    const onMove = (e) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      if (!el) return
       if (el.closest('.works-close')) {
-        b.classList.add('is-cross-in-over'); b.classList.remove('is-link-over')
+        b.classList.add('is-cross-in-over')
+        b.classList.remove('is-link-over')
+      } else if (el.closest('nav.primary-nav a, nav.mobile-menu a')) {
+        // Nav items show OS pointer cursor — hide custom dot
+        b.classList.remove('is-link-over')
+        b.classList.remove('is-cross-in-over')
       } else if (el.closest('a, button, [data-cursor="link"]')) {
-        b.classList.add('is-link-over'); b.classList.remove('is-cross-in-over')
+        b.classList.add('is-link-over')
+        b.classList.remove('is-cross-in-over')
+      } else {
+        b.classList.remove('is-link-over')
+        b.classList.remove('is-cross-in-over')
       }
     }
-    const onOut = (e) => {
-      const el = e.target
-      if (el.closest('.works-close') || el.closest('a, button, [data-cursor="link"]')) {
-        b.classList.remove('is-link-over'); b.classList.remove('is-cross-in-over')
-      }
-    }
-    document.addEventListener('mouseover', onOver)
-    document.addEventListener('mouseout', onOut)
+    window.addEventListener('mousemove', onMove)
     return () => {
-      document.removeEventListener('mouseover', onOver)
-      document.removeEventListener('mouseout', onOut)
+      window.removeEventListener('mousemove', onMove)
     }
   }, [])
 

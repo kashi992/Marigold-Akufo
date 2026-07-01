@@ -3,6 +3,7 @@ import { useCallback, useRef } from 'react'
 import { gsap } from 'gsap'
 
 import { SiteProvider, useSite } from './context/SiteContext'
+import CursorHider from './components/CursorHider'
 import Cursor from './components/Cursor'
 import PrimaryNav from './components/PrimaryNav'
 import CenterNav from './components/CenterNav'
@@ -57,6 +58,7 @@ function AppInner() {
 
   return (
     <div className="page-view">
+      <CursorHider />
       {/* Static background overlay — driven by body.is-white class for about/contact pages */}
       <div className="overlay" />
       {/* App-level GSAP overlay — persists across all page transitions */}

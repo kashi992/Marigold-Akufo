@@ -114,7 +114,7 @@ export default function News() {
               <p>{item.date}</p>
               <p>{item.description}</p>
               {item.link && (
-                <a href={item.link} target="_blank" rel="noopener noreferrer">
+                <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ cursor: 'none' }}>
                   View more
                 </a>
               )}

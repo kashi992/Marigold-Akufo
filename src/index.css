@@ -4,7 +4,7 @@
 
 /* Reset */
 html, body { margin: 0; padding: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
-body { background: #0c0a08; color: #f0ebe2; font-family: apercu, sans-serif; font-weight: 400; line-height: 1.45; cursor: none; }
+body { background: #0c0a08; color: #f0ebe2; font-family: apercu, sans-serif; font-weight: 400; line-height: 1.45; }
 *, *::before, *::after { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }
 
@@ -416,22 +416,11 @@ body.is-home-works .home-works-line { transform: scaleX(1); }
 .cursor-zoom svg { fill: #f0ebe2; height: 17px; width: auto; }
 
 /* Link hover — large circle + crosshair */
-body.is-link-over .cursor-dot,
-body:has(nav.primary-nav a:hover) .cursor-dot { opacity: 1; border: 25px solid #f0ebe2; transform: scale(1); }
-body.is-link-over .cursor-dot .cross-h, body.is-link-over .cursor-dot .cross-v,
-body:has(nav.primary-nav a:hover) .cursor-dot .cross-h,
-body:has(nav.primary-nav a:hover) .cursor-dot .cross-v { opacity: 1; }
-
-/* White pages nav hover — dark circle */
-body.is-white:has(nav.primary-nav a:hover) .cursor-dot { border: 25px solid #0c0a08; }
-body.is-white:has(nav.primary-nav a:hover) .cursor-dot .cross-h,
-body.is-white:has(nav.primary-nav a:hover) .cursor-dot .cross-v { background: #0c0a08; }
-body.is-cross-in-over .cursor-dot,
-body:has(.works-close:hover) .cursor-dot { opacity: 1; border: 25px solid #0c0a08; background: #0c0a08; transform: scale(1); }
+body.is-link-over .cursor-dot { opacity: 1; border: 25px solid #f0ebe2; transform: scale(1); }
+body.is-link-over .cursor-dot .cross-h, body.is-link-over .cursor-dot .cross-v { opacity: 1; }
+body.is-cross-in-over .cursor-dot { opacity: 1; border: 25px solid #0c0a08; background: #0c0a08; transform: scale(1); }
 body.is-cross-in-over .cursor-dot .cross-h,
-body.is-cross-in-over .cursor-dot .cross-v,
-body:has(.works-close:hover) .cursor-dot .cross-h,
-body:has(.works-close:hover) .cursor-dot .cross-v { opacity: 1; background: #f0ebe2; transform: translate(-50%,-50%) rotate(-45deg); }
+body.is-cross-in-over .cursor-dot .cross-v { opacity: 1; background: #f0ebe2; transform: translate(-50%,-50%) rotate(-45deg); }
 
 /* Gallery list image hover — subtle ring expand */
 body.is-peint-over .cursor-dot, body.is-sculpt-over .cursor-dot { border: 1px solid #f0ebe2; transform: scale(1); opacity: .5; }
@@ -602,7 +591,7 @@ body.is-section .page { background: #f0ebe2; }
   opacity: 0;
   transition: opacity 0.8s cubic-bezier(.86,0,.07,1), transform 0.9s cubic-bezier(.86,0,.07,1);
 }
-.work-single .img-container img { display: block; width: 50vw; height: 75vh; touch-action: none; object-fit: contain; cursor: default; max-width: fit-content;}
+.work-single .img-container img { display: block; width: 50vw; height: 75vh; touch-action: none; object-fit: contain; max-width: fit-content;}
 .page--content--center.animateIn .work-single .img-container { opacity: 1; transform: translateX(0); }
 
 /* Left/right click zones — beside image */

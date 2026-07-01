@@ -98,6 +98,7 @@ export default function Works({ collection, navigateTo }) {
         className="works-close"
         onClick={handleClose}
         aria-label="Back to Our Work"
+        style={{ cursor: 'none' }}
       >
         <div className="cross"><div /><div /></div>
       </a>

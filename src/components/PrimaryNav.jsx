@@ -36,7 +36,7 @@ export default function PrimaryNav({ navigateTo }) {
       {/* Small logo — visible only on light (is-white) pages via CSS */}
       <div className="logo-small">
         <span
-          style={{ cursor: 'none' }}
+          style={{ cursor: 'pointer' }}
           onClick={() => handleNavLink('/')}
         >
           M. Akufo-Addo
@@ -47,8 +47,8 @@ export default function PrimaryNav({ navigateTo }) {
       <nav className={`primary-nav${isWhite ? ' is-white-nav' : ''}`}>
         <ul>
           {[['/', 'Home'], ['/about', 'About'], ['/news', 'News'], ['/contact', 'Contacts']].map(([path, label]) => (
-            <li key={path}>
-              <a onClick={() => handleNavLink(path)}>
+            <li key={path} style={{ cursor: 'pointer' }}>
+              <a onClick={() => handleNavLink(path)} style={{ cursor: 'pointer' }}>
                 <SplitText text={label} />
               </a>
             </li>
@@ -66,12 +66,12 @@ export default function PrimaryNav({ navigateTo }) {
       {/* Mobile fullscreen menu */}
       <nav className="mobile-menu" style={{ display: isMenuOpen ? 'table' : 'none' }}>
         <ul>
-          <li><a onClick={() => handleNavLink('/')} style={{ cursor: 'none' }}>Home</a></li>
-          <li><a onClick={() => handleNavLink('/paintings')} style={{ cursor: 'none' }}>Paintings</a></li>
-          <li><a onClick={() => handleNavLink('/drawings')} style={{ cursor: 'none' }}>Drawings</a></li>
-          <li><a onClick={() => handleNavLink('/about')} style={{ cursor: 'none' }}>About</a></li>
-          <li><a onClick={() => handleNavLink('/news')} style={{ cursor: 'none' }}>News</a></li>
-          <li><a onClick={() => handleNavLink('/contact')} style={{ cursor: 'none' }}>Contact</a></li>
+          <li><a onClick={() => handleNavLink('/')} style={{ cursor: 'pointer' }}>Home</a></li>
+          <li><a onClick={() => handleNavLink('/paintings')} style={{ cursor: 'pointer' }}>Paintings</a></li>
+          <li><a onClick={() => handleNavLink('/drawings')} style={{ cursor: 'pointer' }}>Drawings</a></li>
+          <li><a onClick={() => handleNavLink('/about')} style={{ cursor: 'pointer' }}>About</a></li>
+          <li><a onClick={() => handleNavLink('/news')} style={{ cursor: 'pointer' }}>News</a></li>
+          <li><a onClick={() => handleNavLink('/contact')} style={{ cursor: 'pointer' }}>Contact</a></li>
         </ul>
       </nav>
     </>

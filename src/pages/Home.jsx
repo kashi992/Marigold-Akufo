@@ -268,10 +268,9 @@ export default function Home({ navigateTo }) {
                 <div
                   key={`${work.collection}-${work.slug}`}
                   className="home-work-item"
+                  data-cursor="link"
                   onClick={() => handleWorkClick(work)}
                   style={{ '--item-i': idx }}
-                  onMouseEnter={() => { addClass('is-link-over'); removeClass('is-cross-in-over') }}
-                  onMouseLeave={() => removeClass('is-link-over')}
                 >
                   <div className="home-work-img" style={{ backgroundImage: `url(${work.src})` }} />
                   <span className="home-work-caption">{work.title}</span>

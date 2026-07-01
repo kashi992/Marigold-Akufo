@@ -98,6 +98,7 @@ export default function Gallery({ works, type, navigateTo }) {
               className="gallery-close-btn"
               onClick={() => navigateTo('/?works=1')}
               aria-label="Close"
+              style={{ cursor: 'none' }}
             >
               ×
             </button>
