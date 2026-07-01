@@ -1,0 +1,7 @@
+node_modules/
+dist/
+Reference data/
+*.zip
+*.rar
+*.7z
+.claude/
