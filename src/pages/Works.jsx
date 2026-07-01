@@ -85,9 +85,8 @@ export default function Works({ collection, navigateTo }) {
   const handleImageClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
-    const third = rect.width / 3
-    if (x < third) goTo(prevWork, 'prev')
-    else if (x > third * 2) goTo(nextWork, 'next')
+    if (x < rect.width / 2) goTo(prevWork, 'prev')
+    else goTo(nextWork, 'next')
   }
 
   if (!work) return null
@@ -98,7 +97,6 @@ export default function Works({ collection, navigateTo }) {
       <a
         className="works-close"
         onClick={handleClose}
-        style={{ cursor: 'none' }}
         aria-label="Back to Our Work"
       >
         <div className="cross"><div /><div /></div>
@@ -106,19 +104,25 @@ export default function Works({ collection, navigateTo }) {
 
       <div className="page--content--center animateIn" ref={containerRef} style={{ opacity: 0 }}>
         <div className="work-single">
+          {/* Prev zone — left of image */}
           <div
-            className="img-container"
-            data-has-prev={prevWork ? 'true' : 'false'}
-            data-has-next={nextWork ? 'true' : 'false'}
-          >
+            className="work-zone work-zone--prev"
+            onClick={() => goTo(prevWork, 'prev')}
+            style={{ cursor: 'none', pointerEvents: prevWork ? 'auto' : 'none' }}
+          />
+          <div className="img-container">
             <img
               src={work.src}
               alt={work.title}
               draggable="false"
-              onClick={handleImageClick}
-              style={{ cursor: 'none' }}
             />
           </div>
+          {/* Next zone — right of image */}
+          <div
+            className="work-zone work-zone--next"
+            onClick={() => goTo(nextWork, 'next')}
+            style={{ cursor: 'none', pointerEvents: nextWork ? 'auto' : 'none' }}
+          />
 
           {/* Bottom info */}
           <div className="info-nav">

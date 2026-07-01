@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { useSite } from '../context/SiteContext'
 import { useLocation } from 'react-router-dom'
 
 export default function Cursor() {
@@ -7,7 +6,6 @@ export default function Cursor() {
   const prevRef = useRef(null)
   const nextRef = useRef(null)
   const zoomRef = useRef(null)
-  const { addClass, removeClass } = useSite()
   const location = useLocation()
 
   const isGalleryPage = location.pathname === '/paintings' || location.pathname === '/drawings'
@@ -21,39 +19,29 @@ export default function Cursor() {
     const lerp = (a, b, t) => a + (b - a) * t
     let raf
 
+    const b = document.body
+    let lastTarget = null
     const onMove = (e) => {
       mouse.x = e.clientX
       mouse.y = e.clientY
+      // Force hide OS cursor on every element touched
+      if (e.target !== lastTarget) {
+        if (lastTarget) lastTarget.style.removeProperty('cursor')
+        lastTarget = e.target
+        e.target.style.setProperty('cursor', 'none', 'important')
+      }
 
-      if (isGalleryPage) {
-        if (e.clientX < window.innerWidth / 2) {
-          addClass('is-prev-over'); removeClass('is-next-over')
+      if (isDetailPage) {
+        if (e.target.closest('.work-zone--prev')) {
+          b.classList.add('is-prev-over'); b.classList.remove('is-next-over')
+        } else if (e.target.closest('.work-zone--next')) {
+          b.classList.add('is-next-over'); b.classList.remove('is-prev-over')
         } else {
-          addClass('is-next-over'); removeClass('is-prev-over')
-        }
-      } else if (isDetailPage) {
-        // Three zones on image: left third = prev, middle = default dot, right third = next
-        const imgEl = e.target.closest('.work-single .img-container img')
-        const imgContainer = e.target.closest('.work-single .img-container')
-        if (imgEl && imgContainer) {
-          const hasPrev = imgContainer.dataset.hasPrev === 'true'
-          const hasNext = imgContainer.dataset.hasNext === 'true'
-          const rect = imgEl.getBoundingClientRect()
-          const x = e.clientX - rect.left
-          const third = rect.width / 3
-          if (x < third && hasPrev) {
-            addClass('is-prev-over'); removeClass('is-next-over')
-          } else if (x > third * 2 && hasNext) {
-            addClass('is-next-over'); removeClass('is-prev-over')
-          } else {
-            removeClass('is-prev-over'); removeClass('is-next-over')
-          }
-        } else {
-          removeClass('is-prev-over'); removeClass('is-next-over')
+          b.classList.remove('is-prev-over'); b.classList.remove('is-next-over')
         }
       } else {
-        removeClass('is-prev-over')
-        removeClass('is-next-over')
+        b.classList.remove('is-prev-over')
+        b.classList.remove('is-next-over')
       }
     }
 
@@ -89,27 +77,23 @@ export default function Cursor() {
       window.removeEventListener('mousemove', onMove)
       cancelAnimationFrame(raf)
     }
-  }, [isGalleryPage, isDetailPage, addClass, removeClass])
+  }, [isDetailPage])
 
-  // Link hover detection
+  // Link hover detection — direct DOM classList manipulation (no React state delay)
   useEffect(() => {
+    const b = document.body
     const onOver = (e) => {
       const el = e.target
-      if (el.closest('a, button, [data-cursor="link"]')) {
-        if (el.closest('.overlay-in')) {
-          addClass('is-cross-in-over')
-          removeClass('is-link-over')
-        } else {
-          addClass('is-link-over')
-          removeClass('is-cross-in-over')
-        }
+      if (el.closest('.works-close')) {
+        b.classList.add('is-cross-in-over'); b.classList.remove('is-link-over')
+      } else if (el.closest('a, button, [data-cursor="link"]')) {
+        b.classList.add('is-link-over'); b.classList.remove('is-cross-in-over')
       }
     }
     const onOut = (e) => {
       const el = e.target
-      if (el.closest('a, button, [data-cursor="link"]')) {
-        removeClass('is-link-over')
-        removeClass('is-cross-in-over')
+      if (el.closest('.works-close') || el.closest('a, button, [data-cursor="link"]')) {
+        b.classList.remove('is-link-over'); b.classList.remove('is-cross-in-over')
       }
     }
     document.addEventListener('mouseover', onOver)
@@ -118,34 +102,27 @@ export default function Cursor() {
       document.removeEventListener('mouseover', onOver)
       document.removeEventListener('mouseout', onOut)
     }
-  }, [addClass, removeClass])
+  }, [])
 
-  // Zoom cursor — only on gallery list pages, not on detail/lightbox
+  // Zoom cursor
   useEffect(() => {
     if (isDetailPage) return
-    const onOver = (e) => {
-      if (e.target.closest('.work-single .img-container img')) addClass('is-zoom-over')
-    }
-    const onOut = (e) => {
-      if (e.target.closest('.work-single .img-container img')) removeClass('is-zoom-over')
-    }
+    const b = document.body
+    const onOver = (e) => { if (e.target.closest('.work-single .img-container img')) b.classList.add('is-zoom-over') }
+    const onOut = (e) => { if (e.target.closest('.work-single .img-container img')) b.classList.remove('is-zoom-over') }
     document.addEventListener('mouseover', onOver)
     document.addEventListener('mouseout', onOut)
     return () => {
       document.removeEventListener('mouseover', onOver)
       document.removeEventListener('mouseout', onOut)
     }
-  }, [isDetailPage, addClass, removeClass])
+  }, [isDetailPage])
 
   // Clean up on page change
   useEffect(() => {
-    if (!isGalleryPage && !isDetailPage) {
-      removeClass('is-prev-over')
-      removeClass('is-next-over')
-    }
-    removeClass('is-zoom-over')
-    removeClass('is-cross-in-over')
-  }, [location.pathname, isGalleryPage, isDetailPage, removeClass])
+    const b = document.body
+    b.classList.remove('is-prev-over', 'is-next-over', 'is-zoom-over', 'is-cross-in-over', 'is-link-over')
+  }, [location.pathname])
 
   return (
     <div className="cursor-container" aria-hidden="true">

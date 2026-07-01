@@ -46,21 +46,13 @@ export default function PrimaryNav({ navigateTo }) {
       {/* Desktop nav */}
       <nav className={`primary-nav${isWhite ? ' is-white-nav' : ''}`}>
         <ul>
-          <li>
-            <a onClick={() => handleNavLink('/about')} style={{ cursor: 'none' }}>
-              <SplitText text="About" />
-            </a>
-          </li>
-          <li>
-            <a onClick={() => handleNavLink('/news')} style={{ cursor: 'none' }}>
-              <SplitText text="News" />
-            </a>
-          </li>
-          <li>
-            <a onClick={() => handleNavLink('/contact')} style={{ cursor: 'none' }}>
-              <SplitText text="Contacts" />
-            </a>
-          </li>
+          {[['/', 'Home'], ['/about', 'About'], ['/news', 'News'], ['/contact', 'Contacts']].map(([path, label]) => (
+            <li key={path}>
+              <a onClick={() => handleNavLink(path)}>
+                <SplitText text={label} />
+              </a>
+            </li>
+          ))}
         </ul>
       </nav>
 
@@ -74,6 +66,7 @@ export default function PrimaryNav({ navigateTo }) {
       {/* Mobile fullscreen menu */}
       <nav className="mobile-menu" style={{ display: isMenuOpen ? 'table' : 'none' }}>
         <ul>
+          <li><a onClick={() => handleNavLink('/')} style={{ cursor: 'none' }}>Home</a></li>
           <li><a onClick={() => handleNavLink('/paintings')} style={{ cursor: 'none' }}>Paintings</a></li>
           <li><a onClick={() => handleNavLink('/drawings')} style={{ cursor: 'none' }}>Drawings</a></li>
           <li><a onClick={() => handleNavLink('/about')} style={{ cursor: 'none' }}>About</a></li>

@@ -69,6 +69,8 @@ export default function Gallery({ works, type, navigateTo }) {
     return () => { cancelAnimationFrame(rafId); lenis.destroy() }
   }, [])
 
+  const label = isPeint ? 'Paintings' : 'Drawings'
+
   return (
     <section className={`page ${pageClass}${animated ? ' animateIn' : ''}${exiting ? ' exit' : ''}`}>
       <div className={`page--content ui-content lenis-wrapper${animated ? ' animateIn' : ''}`} ref={contentRef}>
@@ -83,6 +85,23 @@ export default function Gallery({ works, type, navigateTo }) {
               </div>
             </a>
           ))}
+        </div>
+      </div>
+
+      {/* Right sticky panel */}
+      <div className={`gallery-right-panel${animated ? ' animateIn' : ''}`}>
+        <div className="gallery-right-inner">
+          <span className="gallery-section-label">{label}</span>
+          <div className="gallery-right-line-wrap">
+            <div className="gallery-right-line" />
+            <button
+              className="gallery-close-btn"
+              onClick={() => navigateTo('/?works=1')}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
         </div>
       </div>
     </section>

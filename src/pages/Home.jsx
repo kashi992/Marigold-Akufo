@@ -220,14 +220,10 @@ export default function Home({ navigateTo }) {
     if (worksExiting) return
     setWorksExiting(true)
 
-    // Step 1: "Our Work" chars + items start disappearing (CSS handles stagger)
-    // Step 2: after animations, cover screen then navigate
+    // Items + label exit via CSS stagger, then navigateTo fires its own overlay
     const t = setTimeout(() => {
-      coverScreen(() => {
-        navigateTo(`/${work.collection}/${work.slug}`)
-        setWorksExiting(false)
-      })
-    }, 1800)
+      navigateTo(`/${work.collection}/${work.slug}`)
+    }, 900)
 
     return () => clearTimeout(t)
   }
@@ -273,7 +269,9 @@ export default function Home({ navigateTo }) {
                   key={`${work.collection}-${work.slug}`}
                   className="home-work-item"
                   onClick={() => handleWorkClick(work)}
-                  style={{ cursor: 'none', '--item-i': idx }}
+                  style={{ '--item-i': idx }}
+                  onMouseEnter={() => { addClass('is-link-over'); removeClass('is-cross-in-over') }}
+                  onMouseLeave={() => removeClass('is-link-over')}
                 >
                   <div className="home-work-img" style={{ backgroundImage: `url(${work.src})` }} />
                   <span className="home-work-caption">{work.title}</span>
@@ -283,17 +281,14 @@ export default function Home({ navigateTo }) {
           </div>
         </div>
 
-        {/* Right sticky label — split into chars for exit animation */}
+        {/* Right sticky label */}
         <div className="home-works-right">
           <p className="home-works-label">
-            {'Our'.split('').map((c, i) => (
-              <span key={i} className="label-char" style={{ '--i': i }}>{c}</span>
-            ))}
-            <br />
-            {'Work'.split('').map((c, i) => (
-              <span key={i} className="label-char" style={{ '--i': i + 4 }}>{c}</span>
+            {'Our Work'.split('').map((c, i) => (
+              <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
             ))}
           </p>
+          <div className="home-works-line" />
         </div>
       </div>
 
