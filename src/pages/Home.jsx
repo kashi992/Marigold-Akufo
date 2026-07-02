@@ -217,56 +217,64 @@ export default function Home({ navigateTo }) {
     const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
     if (isTouch) {
-      // Transform-based scroll — GPU composited, zero layout cost, smoothest on mobile
-      // overflow:hidden stays. We move content via translateY, not scrollTop.
       el.style.position = 'fixed'
       const content = el.firstElementChild
       const getMax = () => Math.max(0, content.scrollHeight - el.clientHeight)
 
-      let currentY = 0, startY = 0, lastY = 0, lastTime = 0
-      const vel = []
+      // Lerp loop — same principle as Lenis desktop
+      // scrollCurrent lerps toward scrollTarget every frame → silky deceleration
+      let scrollTarget = 0   // where we want to be
+      let scrollCurrent = 0  // where content actually is (chases target)
+      let isDragging = false
+
+      const LERP = 0.05 // 5% per frame — slow, matches Lenis duration:5 feel
+
+      let rafId
+      function lerpRaf() {
+        if (!isDragging) {
+          scrollCurrent += (scrollTarget - scrollCurrent) * LERP
+          scrollCurrent = Math.round(scrollCurrent * 100) / 100
+        }
+        gsap.set(content, { y: -scrollCurrent })
+        worksScrollY.current = scrollCurrent
+        rafId = requestAnimationFrame(lerpRaf)
+      }
+      rafId = requestAnimationFrame(lerpRaf)
+
+      let startY = 0, lastY = 0, lastTime = 0
+      const velHistory = []
 
       const onTouchStart = (e) => {
+        isDragging = true
         startY = lastY = e.touches[0].clientY
         lastTime = e.timeStamp
-        vel.length = 0
-        gsap.killTweensOf(content)
-        currentY = gsap.getProperty(content, 'y') // pick up from mid-animation
+        velHistory.length = 0
       }
 
       const onTouchMove = (e) => {
         e.preventDefault()
         const y = e.touches[0].clientY
         const dt = e.timeStamp - lastTime || 1
-        const dy = y - lastY // positive = finger moved down = content moves down
-        vel.push(dy / dt)
-        if (vel.length > 5) vel.shift()
+        const dy = lastY - y // positive = scrolling down
+        velHistory.push(dy / dt)
+        if (velHistory.length > 5) velHistory.shift()
         lastY = y
         lastTime = e.timeStamp
-        currentY = Math.min(0, Math.max(-getMax(), currentY + dy))
-        gsap.set(content, { y: currentY })
-        worksScrollY.current = -currentY
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + dy))
+        scrollCurrent = scrollTarget // instant follow during drag
       }
 
       const onTouchEnd = () => {
-        // Swipe down at top → return to hero
+        isDragging = false
         if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
           startReturn()
           return
         }
-        const avgVel = vel.length
-          ? vel.reduce((a, b) => a + b, 0) / vel.length
+        const avgVel = velHistory.length
+          ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
           : 0
-        const target = Math.min(0, Math.max(-getMax(), currentY + avgVel * 2000))
-        gsap.to(content, {
-          y: target,
-          duration: 10,
-          ease: 'expo.out',
-          onUpdate: () => {
-            currentY = gsap.getProperty(content, 'y')
-            worksScrollY.current = -currentY
-          },
-        })
+        // Add momentum to target — lerp will glide slowly toward it
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + avgVel * 1000))
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -274,7 +282,7 @@ export default function Home({ navigateTo }) {
       el.addEventListener('touchend', onTouchEnd, { passive: true })
 
       return () => {
-        gsap.killTweensOf(content)
+        cancelAnimationFrame(rafId)
         gsap.set(content, { y: 0, clearProps: 'transform' })
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
