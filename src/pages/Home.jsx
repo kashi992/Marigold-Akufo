@@ -227,7 +227,7 @@ export default function Home({ navigateTo }) {
 
       // Velocity-decay momentum — each frame: pos += vel; vel *= DECAY
       // DECAY = 0.97 → ~5s coast (0.97^300frames ≈ 1% remaining)
-      const DECAY = 0.97
+      const DECAY = 0.992
       let velocity = 0       // px/frame, decays each frame after lift
       let scrollCurrent = 0
 
@@ -280,7 +280,7 @@ export default function Home({ navigateTo }) {
         const avgVel = velHistory.length
           ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
           : 0
-        velocity = avgVel * 16 // convert px/ms → px/frame (16ms per frame)
+        velocity = avgVel * 40 // high seed so a fast swipe travels far
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
