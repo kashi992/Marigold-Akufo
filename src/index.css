@@ -367,8 +367,9 @@ nav.primary-nav ul li a { font-size: 0.75rem; letter-spacing: 3px; text-transfor
 /* Left scroll area */
 .home-works { padding: 0 0 20vh 10vw; width: 60vw; }
 .home-work-item { margin-bottom: 80px; width: 40vw; }
-.home-work-img { width: 100%; height: 42vh; background-size: cover; background-position: center; background-repeat: no-repeat; transform: scale(1); transition: transform 2s cubic-bezier(.19,1,.22,1); }
-.home-work-item:hover .home-work-img { transform: scale(1.1); }
+.home-work-img { width: 100%; height: 42vh; overflow: hidden; }
+.home-work-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transform: scale(1); transition: transform 2s cubic-bezier(.19,1,.22,1); }
+.home-work-item:hover .home-work-img img { transform: scale(1.1); }
 .home-work-caption {
   display: block; margin-top: 20px; font-size: 14px; letter-spacing: 1px;
   color: #fff; text-align: center;
@@ -825,4 +826,14 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   /* Remove overflow:hidden from contact wrapper so tap events reach the link */
   .page-contact .contact { overflow: visible; }
   .word-clip { overflow: visible; }
+
+  /* Works scroll — GPU layer + hide scrollbar + remove heavy will-change */
+  .home-works-wrapper {
+    transform: translateZ(0);
+    will-change: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .home-works-wrapper::-webkit-scrollbar { display: none; }
+  .home-works-content { will-change: auto; }
+  .home-work-img { will-change: auto; transform: none !important; }
 }

@@ -341,7 +341,9 @@ export default function Home({ navigateTo }) {
                   onClick={() => handleWorkClick(work)}
                   style={{ '--item-i': idx }}
                 >
-                  <div className="home-work-img" style={{ backgroundImage: `url(${work.src})` }} />
+                  <div className="home-work-img">
+                    <img src={work.src} alt={work.title} loading={idx < 3 ? 'eager' : 'lazy'} draggable="false" />
+                  </div>
                   <span className="home-work-caption">{work.title}</span>
                 </div>
               ))}
