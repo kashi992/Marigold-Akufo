@@ -250,8 +250,10 @@ export default function Home({ navigateTo }) {
         velocity = 0
       }
 
-      const DECAY = 0.975       // closer to 1 = longer coast
-      const MIN_VELOCITY = 0.05 // px/frame — stop threshold
+      const DECAY = 0.992        // closer to 1 = longer, icier coast (~3–5s)
+      const MIN_VELOCITY = 0.08  // px/frame — stop threshold
+      const FLING_BOOST = 1.8    // multiplies release velocity for a longer throw
+      const MAX_VELOCITY = 120   // px/frame cap so a hard swipe doesn't teleport
 
       const momentum = () => {
         velocity *= DECAY
@@ -296,8 +298,12 @@ export default function Home({ navigateTo }) {
         }
 
         // Track velocity in px/frame (~16ms), sign matches scroll direction.
+        // Smooth across moves so a tiny final delta doesn't kill the fling.
         const dt = now - lastT
-        if (dt > 0) velocity = (-dy) * (16 / dt)
+        if (dt > 0) {
+          const instant = (-dy) * (16 / dt)
+          velocity = velocity * 0.7 + instant * 0.3
+        }
         lastY = t.clientY
         lastT = now
       }
@@ -314,8 +320,12 @@ export default function Home({ navigateTo }) {
         }
 
         // Coast if there's meaningful velocity, otherwise settle.
-        if (Math.abs(velocity) > MIN_VELOCITY) {
-          stopMomentum()
+        let release = velocity * FLING_BOOST
+        if (release > MAX_VELOCITY) release = MAX_VELOCITY
+        if (release < -MAX_VELOCITY) release = -MAX_VELOCITY
+        stopMomentum() // clears velocity + any stale loop
+        if (Math.abs(release) > MIN_VELOCITY) {
+          velocity = release
           rafId = requestAnimationFrame(momentum)
         }
         void dyTotal
