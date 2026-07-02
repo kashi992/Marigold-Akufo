@@ -217,13 +217,13 @@ export default function Home({ navigateTo }) {
 
     if (isTouch) {
       // Native scroll — reliable on iOS/Android (Lenis needs overflow:hidden which breaks mobile touch)
-      el.style.overflowY = 'auto'
+      el.style.overflowY = 'scroll'
       el.style.webkitOverflowScrolling = 'touch'
       const onScroll = () => { worksScrollY.current = el.scrollTop }
       el.addEventListener('scroll', onScroll, { passive: true })
       return () => {
         el.removeEventListener('scroll', onScroll)
-        el.style.overflowY = ''
+        el.style.overflowY = 'hidden'
         el.style.webkitOverflowScrolling = ''
         worksScrollY.current = 0
       }
