@@ -214,41 +214,73 @@ export default function Home({ navigateTo }) {
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
     if (isTouch) {
-      // Native iOS scroll — position:fixed escapes overflow:hidden ancestors,
-      // overflow-y:scroll gives the browser full momentum physics (no JS needed)
-      el.style.position = 'fixed'
-      el.style.top = '0'
-      el.style.left = '0'
-      el.style.width = '100%'
-      el.style.height = '100%'
-      el.style.overflowY = 'scroll'
-      el.style.webkitOverflowScrolling = 'touch'
-      el.scrollTop = 0
+      // CSS transition scroll — same compositor-thread smoothness as the hero animations
+      // During drag: transition:none → instant follow
+      // After lift: CSS transition eases to thrown target → silky GPU-animated deceleration
+      const content = el.firstElementChild
+      const getMax = () => Math.max(0, content.scrollHeight - el.clientHeight)
+      let currentPos = 0
 
-      let startY = 0
-
-      const onScroll = () => { worksScrollY.current = el.scrollTop }
-      const onTouchStart = (e) => { startY = e.touches[0].clientY }
-      const onTouchEnd = (e) => {
-        const dy = e.changedTouches[0].clientY - startY
-        if (dy > 40 && worksScrollY.current <= 5) startReturn()
+      const getRenderedPos = () => {
+        const matrix = new DOMMatrix(getComputedStyle(content).transform)
+        return -matrix.m42
       }
 
-      el.addEventListener('scroll', onScroll, { passive: true })
+      let startY = 0, lastY = 0
+      const moves = []
+
+      const onTouchStart = (e) => {
+        // Capture true current position even if mid-transition, then freeze it
+        currentPos = getRenderedPos()
+        content.style.transition = 'none'
+        content.style.transform = `translate3d(0,${-currentPos}px,0)`
+        startY = lastY = e.touches[0].clientY
+        moves.length = 0
+        worksScrollY.current = currentPos
+      }
+
+      const onTouchMove = (e) => {
+        e.preventDefault()
+        const y = e.touches[0].clientY
+        const dy = lastY - y
+        currentPos = Math.max(0, Math.min(getMax(), currentPos + dy))
+        content.style.transform = `translate3d(0,${-currentPos}px,0)`
+        worksScrollY.current = currentPos
+        moves.push({ dy, t: e.timeStamp })
+        if (moves.length > 6) moves.shift()
+        lastY = y
+      }
+
+      const onTouchEnd = (e) => {
+        // Swipe down at top → return to hero
+        if ((lastY - startY) < -40 && worksScrollY.current <= 5) {
+          startReturn()
+          return
+        }
+        // Velocity from last 80ms only
+        const now = e.timeStamp
+        const recent = moves.filter(m => now - m.t < 80)
+        const vel = recent.length
+          ? recent.reduce((s, m) => s + m.dy, 0) / ((recent[recent.length - 1].t - recent[0].t) || 1)
+          : 0
+        const target = Math.max(0, Math.min(getMax(), currentPos + vel * 1000))
+        currentPos = target
+        worksScrollY.current = target
+        // CSS transition — GPU composited, same smoothness as hero
+        content.style.transition = 'transform 2.8s cubic-bezier(0.15, 0.86, 0.36, 0.99)'
+        content.style.transform = `translate3d(0,${-target}px,0)`
+      }
+
       el.addEventListener('touchstart', onTouchStart, { passive: true })
+      el.addEventListener('touchmove', onTouchMove, { passive: false })
       el.addEventListener('touchend', onTouchEnd, { passive: true })
 
       return () => {
-        el.removeEventListener('scroll', onScroll)
+        content.style.transition = ''
+        content.style.transform = ''
         el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
-        el.style.position = ''
-        el.style.top = ''
-        el.style.left = ''
-        el.style.width = ''
-        el.style.height = ''
-        el.style.overflowY = ''
-        el.style.webkitOverflowScrolling = ''
         worksScrollY.current = 0
       }
     }
