@@ -205,13 +205,31 @@ export default function Home({ navigateTo }) {
     return () => hammer.destroy()
   }, [phase, cancelExit])
 
-  // Lenis on works section
+  // Scroll on works section — native on touch devices, Lenis on desktop
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
 
     el.scrollTop = 0
+    worksScrollY.current = 0
 
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
+
+    if (isTouch) {
+      // Native scroll — reliable on iOS/Android (Lenis needs overflow:hidden which breaks mobile touch)
+      el.style.overflowY = 'auto'
+      el.style.webkitOverflowScrolling = 'touch'
+      const onScroll = () => { worksScrollY.current = el.scrollTop }
+      el.addEventListener('scroll', onScroll, { passive: true })
+      return () => {
+        el.removeEventListener('scroll', onScroll)
+        el.style.overflowY = ''
+        el.style.webkitOverflowScrolling = ''
+        worksScrollY.current = 0
+      }
+    }
+
+    // Desktop — Lenis smooth scroll
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
@@ -220,7 +238,6 @@ export default function Home({ navigateTo }) {
       orientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.4,
-      touchMultiplier: 2,
     })
     lenis.scrollTo(0, { immediate: true })
     lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })

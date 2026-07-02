@@ -44,7 +44,7 @@ export default function Contact() {
     gsap.fromTo(
       words,
       { y: '130%' },
-      { y: '0%', duration: 1.6, ease: 'power4.out', stagger: 0.12, delay: 0.2 }
+      { y: '0%', duration: 1.6, ease: 'power4.out', stagger: 0.12, delay: 0.2, onComplete: () => gsap.set(words, { clearProps: 'transform' }) }
     )
   }, [ready])
 

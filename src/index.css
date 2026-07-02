@@ -818,4 +818,8 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   /* Restore default cursor on elements that set cursor:none */
   * { cursor: auto !important; }
   a, button, [data-cursor="link"] { cursor: pointer !important; }
+
+  /* Remove overflow:hidden from contact wrapper so tap events reach the link */
+  .page-contact .contact { overflow: visible; }
+  .word-clip { overflow: visible; }
 }
