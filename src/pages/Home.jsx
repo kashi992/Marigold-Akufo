@@ -24,7 +24,7 @@ function SplitChars({ text }) {
 
 // Phases: 'hero' | 'exiting' | 'works' | 'returning'
 export default function Home({ navigateTo }) {
-  const { addClass, removeClass } = useSite()
+  const { addClass, removeClass, scrollToTopRef } = useSite()
   const location = useLocation()
   const startOnWorks = new URLSearchParams(location.search).get('works') === '1'
   const initialPhase = startOnWorks ? 'works' : 'hero'
@@ -34,6 +34,7 @@ export default function Home({ navigateTo }) {
   const worksWrapRef = useRef(null)
   const lenisRef = useRef(null)
   const worksScrollY = useRef(0)
+  const exitTimerRef = useRef(null)
 
   // Local overlay state — true = covering, false = lifted
   const [covering, setCovering] = useState(false)
@@ -104,7 +105,8 @@ export default function Home({ navigateTo }) {
     addClass('is-hero-exiting')
 
     // Step 2: once chars are gone, cover screen then swap
-    const t = setTimeout(() => {
+    exitTimerRef.current = setTimeout(() => {
+      exitTimerRef.current = null
       coverScreen(() => {
         // Runs exactly when overlay fully covers — swap content underneath
         setPhaseSync('works')
@@ -114,8 +116,19 @@ export default function Home({ navigateTo }) {
       })
     }, 2800)
 
-    return () => clearTimeout(t)
+    return () => { clearTimeout(exitTimerRef.current); exitTimerRef.current = null }
   }, [addClass, removeClass, coverScreen])
+
+  // ── CANCEL: exiting → hero (scroll up during text fade) ──
+  const cancelExit = useCallback(() => {
+    if (phaseRef.current !== 'exiting') return
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current)
+      exitTimerRef.current = null
+    }
+    removeClass('is-hero-exiting')
+    setPhaseSync('hero')
+  }, [removeClass])
 
   // ── REVERSE: works → hero ──
   const startReturn = useCallback(() => {
@@ -138,6 +151,18 @@ export default function Home({ navigateTo }) {
     })
   }, [addClass, removeClass, coverScreen])
 
+  // Register scroll-to-top handler so nav "Home" click works from works phase
+  useEffect(() => {
+    scrollToTopRef.current = () => {
+      if (phaseRef.current === 'works') {
+        startReturn()
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+    return () => { scrollToTopRef.current = null }
+  }, [scrollToTopRef, startReturn])
+
   // Wheel on hero (desktop)
   useEffect(() => {
     const el = heroRef.current
@@ -149,6 +174,17 @@ export default function Home({ navigateTo }) {
     return () => el.removeEventListener('wheel', onWheel)
   }, [phase, startExit])
 
+  // Wheel up during exit — cancel and restore hero
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || phase !== 'exiting') return
+    const onWheel = (e) => {
+      if (e.deltaY < 0) { e.preventDefault(); cancelExit() }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [phase, cancelExit])
+
   // Hammer on hero (touch)
   useEffect(() => {
     const el = heroRef.current
@@ -158,6 +194,16 @@ export default function Home({ navigateTo }) {
     hammer.on('panup', () => startExit())
     return () => hammer.destroy()
   }, [phase, startExit])
+
+  // Hammer pan-down during exit (touch) — cancel and restore hero
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || phase !== 'exiting') return
+    const hammer = new Hammer.Manager(el)
+    hammer.add(new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 20 }))
+    hammer.on('pandown', () => cancelExit())
+    return () => hammer.destroy()
+  }, [phase, cancelExit])
 
   // Lenis on works section
   useEffect(() => {

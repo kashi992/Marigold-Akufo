@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 
 const SiteContext = createContext(null)
 
@@ -6,6 +6,8 @@ export function SiteProvider({ children }) {
   const [bodyClasses, setBodyClasses] = useState(new Set())
   const [isLoaded, setIsLoaded] = useState(false)
   const [currentPage, setCurrentPage] = useState('home')
+  // Pages can register a custom "go to top" handler (e.g. Home uses startReturn)
+  const scrollToTopRef = useRef(null)
 
   const addClass = useCallback((cls) => {
     setBodyClasses(prev => {
@@ -47,6 +49,7 @@ export function SiteProvider({ children }) {
       setIsLoaded,
       currentPage,
       setCurrentPage,
+      scrollToTopRef,
     }}>
       {children}
     </SiteContext.Provider>

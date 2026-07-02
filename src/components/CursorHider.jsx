@@ -5,8 +5,8 @@ import { useEffect } from 'react'
 // style={{ cursor: 'none' }} directly via React props.
 export default function CursorHider() {
   useEffect(() => {
-    document.documentElement.style.cursor = 'none'
-    document.body.style.cursor = 'none'
+    document.documentElement.style.cursor = 'default'
+    document.body.style.cursor = 'default'
 
     // Catch any <a href> or <button> added dynamically that we don't own
     const observer = new MutationObserver((mutations) => {
@@ -14,7 +14,9 @@ export default function CursorHider() {
         m.addedNodes.forEach((node) => {
           if (node.nodeType !== 1) return
           node.querySelectorAll('a, button, input, select, textarea').forEach((el) => {
-            el.style.cursor = 'none'
+            if (!el.closest('nav.primary-nav, nav.mobile-menu, footer')) {
+              el.style.cursor = 'none'
+            }
           })
         })
       })

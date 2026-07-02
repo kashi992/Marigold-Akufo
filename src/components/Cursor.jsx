@@ -81,14 +81,17 @@ export default function Cursor() {
       if (el.closest('.works-close')) {
         b.classList.add('is-cross-in-over')
         b.classList.remove('is-link-over')
-      } else if (el.closest('nav.primary-nav a, nav.mobile-menu a')) {
-        // Nav items show OS pointer cursor — hide custom dot
+      } else if (el.closest('nav.primary-nav a, nav.mobile-menu a, footer a')) {
+        // Nav items and social icons — show OS pointer + keep ring visible
+        b.classList.remove('is-no-cursor')
         b.classList.remove('is-link-over')
         b.classList.remove('is-cross-in-over')
       } else if (el.closest('a, button, [data-cursor="link"]')) {
+        b.classList.remove('is-no-cursor')
         b.classList.add('is-link-over')
         b.classList.remove('is-cross-in-over')
       } else {
+        b.classList.remove('is-no-cursor')
         b.classList.remove('is-link-over')
         b.classList.remove('is-cross-in-over')
       }
@@ -116,7 +119,7 @@ export default function Cursor() {
   // Clean up on page change
   useEffect(() => {
     const b = document.body
-    b.classList.remove('is-prev-over', 'is-next-over', 'is-zoom-over', 'is-cross-in-over', 'is-link-over')
+    b.classList.remove('is-prev-over', 'is-next-over', 'is-zoom-over', 'is-cross-in-over', 'is-link-over', 'is-no-cursor')
   }, [location.pathname])
 
   return (

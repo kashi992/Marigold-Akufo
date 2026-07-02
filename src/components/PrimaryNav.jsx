@@ -33,20 +33,20 @@ export default function PrimaryNav({ navigateTo }) {
 
   return (
     <>
-      {/* Small logo — visible only on light (is-white) pages via CSS */}
-      <div className="logo-small">
+      {/* Main logo — always visible top-left */}
+      <div className="logo-main">
         <span
           style={{ cursor: 'pointer' }}
           onClick={() => handleNavLink('/')}
         >
-          M. Akufo-Addo
+          Marigold
         </span>
       </div>
 
       {/* Desktop nav */}
       <nav className={`primary-nav${isWhite ? ' is-white-nav' : ''}`}>
         <ul>
-          {[['/', 'Home'], ['/about', 'About'], ['/news', 'News'], ['/contact', 'Contacts']].map(([path, label]) => (
+          {[['/', 'Home'], ['/about', 'About'], ['/contact', 'Contacts']].map(([path, label]) => (
             <li key={path} style={{ cursor: 'pointer' }}>
               <a onClick={() => handleNavLink(path)} style={{ cursor: 'pointer' }}>
                 <SplitText text={label} />
@@ -64,13 +64,10 @@ export default function PrimaryNav({ navigateTo }) {
       </div>
 
       {/* Mobile fullscreen menu */}
-      <nav className="mobile-menu" style={{ display: isMenuOpen ? 'table' : 'none' }}>
+      <nav className="mobile-menu">
         <ul>
           <li><a onClick={() => handleNavLink('/')} style={{ cursor: 'pointer' }}>Home</a></li>
-          <li><a onClick={() => handleNavLink('/paintings')} style={{ cursor: 'pointer' }}>Paintings</a></li>
-          <li><a onClick={() => handleNavLink('/drawings')} style={{ cursor: 'pointer' }}>Drawings</a></li>
           <li><a onClick={() => handleNavLink('/about')} style={{ cursor: 'pointer' }}>About</a></li>
-          <li><a onClick={() => handleNavLink('/news')} style={{ cursor: 'pointer' }}>News</a></li>
           <li><a onClick={() => handleNavLink('/contact')} style={{ cursor: 'pointer' }}>Contact</a></li>
         </ul>
       </nav>
