@@ -211,19 +211,93 @@ export default function Home({ navigateTo }) {
     if (!el || phase !== 'works') return
 
     worksScrollY.current = 0
-    const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
 
-    // Touch — swipe down at top → return to hero
-    let touchStartY = 0
-    const onTouchStart = (e) => { touchStartY = e.touches[0].clientY }
-    const onTouchEnd = (e) => {
-      const dy = e.changedTouches[0].clientY - touchStartY
-      if (dy > 40 && worksScrollY.current <= 5) startReturn()
+    if (isTouch) {
+      // --- Mobile: virtual scroll via translate3d, same technique as reference site ---
+      // Body has overflow:hidden so we escape it with position:fixed and move content via transform
+      el.style.position = 'fixed'
+      el.style.top = '0'
+      el.style.left = '0'
+      el.style.width = '100%'
+      el.style.height = '100%'
+
+      const content = el.firstElementChild
+      const getMax = () => Math.max(0, content.scrollHeight - window.innerHeight)
+
+      // LERP = 0.075 matches reference site ease. This gives ~1.5s smooth deceleration.
+      const LERP = 0.075
+      let scrollTarget = 0
+      let scrollCurrent = 0
+
+      let rafId
+      function lerpRaf() {
+        scrollCurrent += (scrollTarget - scrollCurrent) * LERP
+        // Stop rAF jitter — snap when within 0.1px
+        if (Math.abs(scrollTarget - scrollCurrent) < 0.1) scrollCurrent = scrollTarget
+        content.style.transform = `translate3d(0, ${-scrollCurrent}px, 0)`
+        worksScrollY.current = scrollCurrent
+        rafId = requestAnimationFrame(lerpRaf)
+      }
+      rafId = requestAnimationFrame(lerpRaf)
+
+      let startY = 0, lastY = 0, lastTime = 0
+      const velHistory = []
+
+      const onTouchStart = (e) => {
+        startY = lastY = e.touches[0].clientY
+        lastTime = e.timeStamp
+        velHistory.length = 0
+        scrollTarget = scrollCurrent // snap target to current to stop any ongoing momentum
+      }
+
+      const onTouchMove = (e) => {
+        e.preventDefault()
+        const y = e.touches[0].clientY
+        const dt = e.timeStamp - lastTime || 1
+        const dy = lastY - y // positive = scrolling down
+        velHistory.push(dy / dt)
+        if (velHistory.length > 5) velHistory.shift()
+        lastY = y
+        lastTime = e.timeStamp
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + dy))
+        scrollCurrent = scrollTarget // instant follow during drag
+      }
+
+      const onTouchEnd = () => {
+        // Swipe down at top → return to hero
+        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
+          startReturn()
+          return
+        }
+        const avgVel = velHistory.length
+          ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
+          : 0
+        // Momentum throw — 300ms worth of velocity, LERP will ease it out slowly
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + avgVel * 300))
+      }
+
+      el.addEventListener('touchstart', onTouchStart, { passive: true })
+      el.addEventListener('touchmove', onTouchMove, { passive: false })
+      el.addEventListener('touchend', onTouchEnd, { passive: true })
+
+      return () => {
+        cancelAnimationFrame(rafId)
+        content.style.transform = ''
+        el.style.position = ''
+        el.style.top = ''
+        el.style.left = ''
+        el.style.width = ''
+        el.style.height = ''
+        el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchmove', onTouchMove)
+        el.removeEventListener('touchend', onTouchEnd)
+        worksScrollY.current = 0
+      }
     }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchend', onTouchEnd, { passive: true })
 
-    // Lenis — same config as Gallery, works on both desktop and mobile
+    // Desktop — Lenis smooth wheel scroll
+    const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
@@ -232,7 +306,6 @@ export default function Home({ navigateTo }) {
       orientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.4,
-      touchMultiplier: 1.5,
     })
     lenis.scrollTo(0, { immediate: true })
     lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })
@@ -247,8 +320,6 @@ export default function Home({ navigateTo }) {
       lenis.destroy()
       lenisRef.current = null
       worksScrollY.current = 0
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchend', onTouchEnd)
     }
   }, [phase, startReturn])
 
