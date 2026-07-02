@@ -214,73 +214,134 @@ export default function Home({ navigateTo }) {
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
     if (isTouch) {
-      // CSS transition scroll — same compositor-thread smoothness as the hero animations
-      // During drag: transition:none → instant follow
-      // After lift: CSS transition eases to thrown target → silky GPU-animated deceleration
-      const content = el.firstElementChild
-      const getMax = () => Math.max(0, content.scrollHeight - el.clientHeight)
-      let currentPos = 0
+      // JS-driven scroll. Native overflow scroll is unreliable inside the
+      // overflow:hidden ancestor chain, so we move the content ourselves with
+      // transform:translate3d and apply exponential velocity decay for a slow,
+      // icy Lenis-like coast (~3–5s) on finger lift.
+      el.style.position = 'fixed'
+      el.style.top = '0'
+      el.style.left = '0'
+      el.style.width = '100%'
+      el.style.height = '100%'
+      el.style.overflowY = 'hidden'
 
-      const getRenderedPos = () => {
-        const matrix = new DOMMatrix(getComputedStyle(content).transform)
-        return -matrix.m42
+      const content = el.firstElementChild
+      content.style.willChange = 'transform'
+
+      // scroll = how far content is pushed up (>= 0). translateY = -scroll.
+      let scroll = 0
+      const maxScroll = () =>
+        Math.max(0, content.scrollHeight - el.clientHeight)
+
+      const apply = () => {
+        content.style.transform = `translate3d(0, ${-scroll}px, 0)`
+        worksScrollY.current = scroll
       }
 
-      let startY = 0, lastY = 0
-      const moves = []
+      let dragging = false
+      let lastY = 0            // last touch Y during move
+      let lastT = 0            // last touch timestamp
+      let velocity = 0         // px per frame (positive = content moving up)
+      let rafId = null
+      let downFromTop = false  // gesture started at the very top, dragging down
+
+      const stopMomentum = () => {
+        if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
+        velocity = 0
+      }
+
+      const DECAY = 0.975       // closer to 1 = longer coast
+      const MIN_VELOCITY = 0.05 // px/frame — stop threshold
+
+      const momentum = () => {
+        velocity *= DECAY
+        scroll += velocity
+        if (scroll <= 0) { scroll = 0; velocity = 0 }
+        const max = maxScroll()
+        if (scroll >= max) { scroll = max; velocity = 0 }
+        apply()
+        if (Math.abs(velocity) > MIN_VELOCITY) {
+          rafId = requestAnimationFrame(momentum)
+        } else {
+          rafId = null
+        }
+      }
 
       const onTouchStart = (e) => {
-        // Capture true current position even if mid-transition, then freeze it
-        currentPos = getRenderedPos()
-        content.style.transition = 'none'
-        content.style.transform = `translate3d(0,${-currentPos}px,0)`
-        startY = lastY = e.touches[0].clientY
-        moves.length = 0
-        worksScrollY.current = currentPos
+        stopMomentum() // touching while coasting stops it immediately
+        dragging = true
+        const t = e.touches[0]
+        lastY = t.clientY
+        lastT = e.timeStamp || performance.now()
+        velocity = 0
+        downFromTop = scroll <= 0
       }
 
       const onTouchMove = (e) => {
+        if (!dragging) return
         e.preventDefault()
-        const y = e.touches[0].clientY
-        const dy = lastY - y
-        currentPos = Math.max(0, Math.min(getMax(), currentPos + dy))
-        content.style.transform = `translate3d(0,${-currentPos}px,0)`
-        worksScrollY.current = currentPos
-        moves.push({ dy, t: e.timeStamp })
-        if (moves.length > 6) moves.shift()
-        lastY = y
+        const t = e.touches[0]
+        const now = e.timeStamp || performance.now()
+        const dy = t.clientY - lastY // finger down (positive) = scroll up
+
+        // If pulling down while already at the top, let it fall through to
+        // startReturn on release instead of moving content.
+        if (!(downFromTop && scroll <= 0 && dy > 0)) {
+          downFromTop = false
+          scroll -= dy // finger down -> content moves down -> scroll decreases
+          if (scroll < 0) scroll = 0
+          const max = maxScroll()
+          if (scroll > max) scroll = max
+          apply()
+        }
+
+        // Track velocity in px/frame (~16ms), sign matches scroll direction.
+        const dt = now - lastT
+        if (dt > 0) velocity = (-dy) * (16 / dt)
+        lastY = t.clientY
+        lastT = now
       }
 
       const onTouchEnd = (e) => {
-        // Swipe down at top → return to hero
-        if ((lastY - startY) < -40 && worksScrollY.current <= 5) {
+        if (!dragging) return
+        dragging = false
+        const dyTotal = e.changedTouches[0].clientY
+
+        // Swipe down while at the very top -> return to hero.
+        if (downFromTop && scroll <= 0) {
           startReturn()
           return
         }
-        // Velocity from last 80ms only
-        const now = e.timeStamp
-        const recent = moves.filter(m => now - m.t < 80)
-        const vel = recent.length
-          ? recent.reduce((s, m) => s + m.dy, 0) / ((recent[recent.length - 1].t - recent[0].t) || 1)
-          : 0
-        const target = Math.max(0, Math.min(getMax(), currentPos + vel * 1000))
-        currentPos = target
-        worksScrollY.current = target
-        // CSS transition — GPU composited, same smoothness as hero
-        content.style.transition = 'transform 2.8s cubic-bezier(0.15, 0.86, 0.36, 0.99)'
-        content.style.transform = `translate3d(0,${-target}px,0)`
+
+        // Coast if there's meaningful velocity, otherwise settle.
+        if (Math.abs(velocity) > MIN_VELOCITY) {
+          stopMomentum()
+          rafId = requestAnimationFrame(momentum)
+        }
+        void dyTotal
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
       el.addEventListener('touchmove', onTouchMove, { passive: false })
       el.addEventListener('touchend', onTouchEnd, { passive: true })
+      el.addEventListener('touchcancel', onTouchEnd, { passive: true })
+
+      apply()
 
       return () => {
-        content.style.transition = ''
-        content.style.transform = ''
+        stopMomentum()
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
+        el.removeEventListener('touchcancel', onTouchEnd)
+        el.style.position = ''
+        el.style.top = ''
+        el.style.left = ''
+        el.style.width = ''
+        el.style.height = ''
+        el.style.overflowY = ''
+        content.style.transform = ''
+        content.style.willChange = ''
         worksScrollY.current = 0
       }
     }
