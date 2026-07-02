@@ -214,36 +214,77 @@ export default function Home({ navigateTo }) {
     worksScrollY.current = 0
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
+    const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
+
     if (isTouch) {
-      // Pure native scroll — fastest, smoothest path on mobile
-      // position:fixed escapes all overflow:hidden ancestors
-      // overflow-y:scroll gives iOS/Android their own native momentum engine
+      // position:fixed escapes overflow:hidden ancestors
+      // overflow-y:scroll is REQUIRED for iOS Safari to allow scrollTop changes
       el.style.position = 'fixed'
       el.style.overflowY = 'scroll'
-      el.style.webkitOverflowScrolling = 'touch'
       el.scrollTop = 0
 
-      const onScroll = () => { worksScrollY.current = el.scrollTop }
-      el.addEventListener('scroll', onScroll, { passive: true })
+      const lenis = new Lenis({
+        wrapper: el,
+        content: el.firstElementChild,
+        duration: 5,
+        easing,
+        orientation: 'vertical',
+        smoothWheel: false,
+        syncTouch: false,
+      })
+      lenis.scrollTo(0, { immediate: true })
+      lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })
+      lenisRef.current = lenis
 
-      // Swipe down at top → return to hero
-      let startY = 0
-      const onTouchStart = (e) => { startY = e.touches[0].clientY }
-      const onTouchEnd = (e) => {
-        const dy = e.changedTouches[0].clientY - startY
-        if (dy > 40 && worksScrollY.current <= 5) startReturn()
+      let rafId
+      function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
+      rafId = requestAnimationFrame(raf)
+
+      let startY = 0, lastY = 0, lastTime = 0, vel = 0
+
+      const onTouchStart = (e) => {
+        startY = lastY = e.touches[0].clientY
+        lastTime = Date.now()
+        vel = 0
+        lenis.scrollTo(lenis.scroll, { immediate: true }) // stop any ongoing animation
       }
+
+      const onTouchMove = (e) => {
+        e.preventDefault() // block native scroll — we control it
+        const y = e.touches[0].clientY
+        const now = Date.now()
+        const dy = lastY - y
+        const dt = now - lastTime || 1
+        vel = dy / dt          // px per ms
+        lastY = y
+        lastTime = now
+        lenis.scrollTo(lenis.scroll + dy, { immediate: true }) // follow finger
+      }
+
+      const onTouchEnd = (e) => {
+        e.preventDefault() // block native momentum — Lenis takes over
+        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
+          startReturn()
+          return
+        }
+        // Same duration + easing as desktop wheel — identical deceleration feel
+        lenis.scrollTo(lenis.scroll + vel * 500, { duration: 5, easing })
+      }
+
       el.addEventListener('touchstart', onTouchStart, { passive: true })
-      el.addEventListener('touchend', onTouchEnd, { passive: true })
+      el.addEventListener('touchmove', onTouchMove, { passive: false })
+      el.addEventListener('touchend', onTouchEnd, { passive: false })
 
       return () => {
-        el.removeEventListener('scroll', onScroll)
-        el.removeEventListener('touchstart', onTouchStart)
-        el.removeEventListener('touchend', onTouchEnd)
+        cancelAnimationFrame(rafId)
+        lenis.destroy()
+        lenisRef.current = null
+        worksScrollY.current = 0
         el.style.position = ''
         el.style.overflowY = ''
-        el.style.webkitOverflowScrolling = ''
-        worksScrollY.current = 0
+        el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchmove', onTouchMove)
+        el.removeEventListener('touchend', onTouchEnd)
       }
     }
 
@@ -252,7 +293,7 @@ export default function Home({ navigateTo }) {
       wrapper: el,
       content: el.firstElementChild,
       duration: 5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      easing,
       orientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.4,
