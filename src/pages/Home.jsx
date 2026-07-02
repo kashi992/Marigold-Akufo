@@ -239,41 +239,30 @@ export default function Home({ navigateTo }) {
       }
 
       let dragging = false
-      let lastY = 0            // last touch Y during move
-      let lastT = 0            // last touch timestamp
-      let velocity = 0         // px per frame (positive = content moving up)
-      let rafId = null
-      let downFromTop = false  // gesture started at the very top, dragging down
+      let lastY = 0
+      let lastT = 0
+      let velocity = 0
+      let downFromTop = false
 
-      const stopMomentum = () => {
-        if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
-        velocity = 0
-      }
+      const MIN_VELOCITY = 0.08
+      const FLING_BOOST = 1.8
+      const MAX_VELOCITY = 120
 
-      const DECAY = 0.992        // closer to 1 = longer, icier coast (~3–5s)
-      const MIN_VELOCITY = 0.08  // px/frame — stop threshold
-      const FLING_BOOST = 1.8    // multiplies release velocity for a longer throw
-      const MAX_VELOCITY = 120   // px/frame cap so a hard swipe doesn't teleport
-
-      const momentum = () => {
-        velocity *= DECAY
-        scroll += velocity
-        if (scroll <= 0) { scroll = 0; velocity = 0 }
-        const max = maxScroll()
-        if (scroll >= max) { scroll = max; velocity = 0 }
-        apply()
-        if (Math.abs(velocity) > MIN_VELOCITY) {
-          rafId = requestAnimationFrame(momentum)
-        } else {
-          rafId = null
-        }
+      // Read the actual rendered Y even mid CSS-transition via computed matrix
+      const getRenderedScroll = () => {
+        const m = new DOMMatrix(getComputedStyle(content).transform)
+        return Math.max(0, -m.m42)
       }
 
       const onTouchStart = (e) => {
-        stopMomentum() // touching while coasting stops it immediately
+        // Freeze content exactly where it is — stops any running CSS transition
+        scroll = getRenderedScroll()
+        content.style.transition = 'none'
+        content.style.transform = `translate3d(0,${-scroll}px,0)`
+        worksScrollY.current = scroll
+
         dragging = true
-        const t = e.touches[0]
-        lastY = t.clientY
+        lastY = e.touches[0].clientY
         lastT = e.timeStamp || performance.now()
         velocity = 0
         downFromTop = scroll <= 0
@@ -282,53 +271,43 @@ export default function Home({ navigateTo }) {
       const onTouchMove = (e) => {
         if (!dragging) return
         e.preventDefault()
-        const t = e.touches[0]
         const now = e.timeStamp || performance.now()
-        const dy = t.clientY - lastY // finger down (positive) = scroll up
+        const dy = e.touches[0].clientY - lastY
 
-        // If pulling down while already at the top, let it fall through to
-        // startReturn on release instead of moving content.
         if (!(downFromTop && scroll <= 0 && dy > 0)) {
           downFromTop = false
-          scroll -= dy // finger down -> content moves down -> scroll decreases
-          if (scroll < 0) scroll = 0
-          const max = maxScroll()
-          if (scroll > max) scroll = max
-          apply()
+          scroll = Math.max(0, Math.min(maxScroll(), scroll - dy))
+          content.style.transform = `translate3d(0,${-scroll}px,0)`
+          worksScrollY.current = scroll
         }
 
-        // Track velocity in px/frame (~16ms), sign matches scroll direction.
-        // Smooth across moves so a tiny final delta doesn't kill the fling.
         const dt = now - lastT
-        if (dt > 0) {
-          const instant = (-dy) * (16 / dt)
-          velocity = velocity * 0.7 + instant * 0.3
-        }
-        lastY = t.clientY
+        if (dt > 0) velocity = velocity * 0.7 + (-dy) * (16 / dt) * 0.3
+        lastY = e.touches[0].clientY
         lastT = now
       }
 
       const onTouchEnd = (e) => {
         if (!dragging) return
         dragging = false
-        const dyTotal = e.changedTouches[0].clientY
 
-        // Swipe down while at the very top -> return to hero.
-        if (downFromTop && scroll <= 0) {
-          startReturn()
-          return
-        }
+        if (downFromTop && scroll <= 0) { startReturn(); return }
 
-        // Coast if there's meaningful velocity, otherwise settle.
-        let release = velocity * FLING_BOOST
-        if (release > MAX_VELOCITY) release = MAX_VELOCITY
-        if (release < -MAX_VELOCITY) release = -MAX_VELOCITY
-        stopMomentum() // clears velocity + any stale loop
-        if (Math.abs(release) > MIN_VELOCITY) {
-          velocity = release
-          rafId = requestAnimationFrame(momentum)
-        }
-        void dyTotal
+        let release = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, velocity * FLING_BOOST))
+        if (Math.abs(release) < MIN_VELOCITY) return
+
+        // Throw distance = geometric series of decay (same as DECAY=0.992 rAF loop)
+        // But deceleration runs on the GPU compositor via CSS transition — never drops frames
+        const throwDist = release * 125
+        const target = Math.max(0, Math.min(maxScroll(), scroll + throwDist))
+        // Duration scales with speed: fast swipe = longer coast, slow swipe = shorter
+        const duration = Math.min(5, Math.max(0.8, Math.abs(release) * 0.07))
+
+        scroll = target
+        worksScrollY.current = target
+        // cubic-bezier(0.16, 1, 0.3, 1) = "expo out" — rockets off then coasts to a whisper
+        content.style.transition = `transform ${duration}s cubic-bezier(0.16,1,0.3,1)`
+        content.style.transform = `translate3d(0,${-target}px,0)`
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -339,7 +318,9 @@ export default function Home({ navigateTo }) {
       apply()
 
       return () => {
-        stopMomentum()
+        content.style.transition = ''
+        content.style.transform = ''
+        content.style.willChange = ''
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
@@ -350,8 +331,6 @@ export default function Home({ navigateTo }) {
         el.style.width = ''
         el.style.height = ''
         el.style.overflowY = ''
-        content.style.transform = ''
-        content.style.willChange = ''
         worksScrollY.current = 0
       }
     }
