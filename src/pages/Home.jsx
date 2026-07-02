@@ -318,7 +318,7 @@ export default function Home({ navigateTo }) {
         <div className="home-hero-bg" style={{ backgroundImage: `url('/images/hero.jpg')` }} />
         <div className="home-hero-center">
           <p className="home-hero-title">
-            <SplitChars text="marigold akufo-addo11" />
+            <SplitChars text="marigold akufo-addo22" />
           </p>
           <div className="home-hero-line" />
         </div>
