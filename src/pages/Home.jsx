@@ -212,21 +212,18 @@ export default function Home({ navigateTo }) {
 
     worksScrollY.current = 0
     const isTouch = window.matchMedia('(pointer: coarse)').matches
+    const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
-    // Mobile: position:fixed escapes overflow:hidden ancestors so touch events reach Lenis
     if (isTouch) el.style.position = 'fixed'
 
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
-      duration: isTouch ? 2 : 5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 5,
+      easing,
       orientation: 'vertical',
-      smoothWheel: !isTouch,
-      syncTouch: isTouch,         // correct Lenis v1 option for smooth touch (not smoothTouch)
-      syncTouchLerp: 0.1,
-      touchInertiaMultiplier: 20,
-      touchMultiplier: 2,
+      smoothWheel: true,
+      syncTouch: false, // we drive touch manually below for identical easing to desktop
       wheelMultiplier: 0.4,
     })
     lenis.scrollTo(0, { immediate: true })
@@ -237,16 +234,65 @@ export default function Home({ navigateTo }) {
     function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
     rafId = requestAnimationFrame(raf)
 
+    // ── Custom touch → same Lenis easing as desktop wheel ──
+    if (isTouch) {
+      let startY = 0, lastY = 0, lastTime = 0, vel = 0
+
+      const onTouchStart = (e) => {
+        startY = lastY = e.touches[0].clientY
+        lastTime = Date.now()
+        vel = 0
+        lenis.scrollTo(lenis.scroll, { immediate: true }) // stop ongoing animation
+      }
+
+      const onTouchMove = (e) => {
+        e.preventDefault()
+        const y = e.touches[0].clientY
+        const now = Date.now()
+        const dy = lastY - y
+        const dt = now - lastTime || 1
+        vel = dy / dt // px per ms
+        lastY = y
+        lastTime = now
+        lenis.scrollTo(lenis.scroll + dy, { immediate: true }) // follow finger exactly
+      }
+
+      const onTouchEnd = () => {
+        // swipe down at top → return to hero
+        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
+          startReturn()
+          return
+        }
+        // momentum: fire scrollTo with same duration+easing as desktop
+        const momentum = vel * 600
+        lenis.scrollTo(lenis.scroll + momentum, { duration: 5, easing })
+      }
+
+      el.addEventListener('touchstart', onTouchStart, { passive: true })
+      el.addEventListener('touchmove', onTouchMove, { passive: false })
+      el.addEventListener('touchend', onTouchEnd, { passive: true })
+
+      return () => {
+        cancelAnimationFrame(rafId)
+        lenis.destroy()
+        lenisRef.current = null
+        worksScrollY.current = 0
+        el.style.position = ''
+        el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchmove', onTouchMove)
+        el.removeEventListener('touchend', onTouchEnd)
+      }
+    }
+
     return () => {
       cancelAnimationFrame(rafId)
       lenis.destroy()
       lenisRef.current = null
       worksScrollY.current = 0
-      if (isTouch) el.style.position = ''
     }
-  }, [phase])
+  }, [phase, startReturn])
 
-  // Wheel on works — scroll up at top goes back to hero (capture fires before Lenis)
+  // Wheel on works — scroll up at top goes back to hero
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
@@ -259,24 +305,6 @@ export default function Home({ navigateTo }) {
     }
     el.addEventListener('wheel', onWheel, { passive: false, capture: true })
     return () => el.removeEventListener('wheel', onWheel, { capture: true })
-  }, [phase, startReturn])
-
-  // Touch swipe-down at top → return to hero (native listeners, not Hammer, so Lenis touch scroll is unblocked)
-  useEffect(() => {
-    const el = worksWrapRef.current
-    if (!el || phase !== 'works') return
-    let touchStartY = 0
-    const onTouchStart = (e) => { touchStartY = e.touches[0].clientY }
-    const onTouchEnd = (e) => {
-      const dy = e.changedTouches[0].clientY - touchStartY
-      if (dy > 40 && worksScrollY.current <= 5) startReturn()
-    }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchend', onTouchEnd, { passive: true })
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchend', onTouchEnd)
-    }
   }, [phase, startReturn])
 
   const [worksExiting, setWorksExiting] = useState(false)
