@@ -55,17 +55,18 @@ export default function Contact() {
           <SplitWords text="Feel free to" />
           {' '}
           <span className="word-clip">
-            <span
+            <a 
+            href='mailto:marigoldakufoaddo@gmail.com'
               className="word-inner contact-link"
               role="link"
               tabIndex={0}
               data-cursor="link"
-              style={{ cursor: 'none' }}
-              onClick={() => { window.location.href = 'mailto:info@marigoldakufoaddo.com' }}
-              onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = 'mailto:info@marigoldakufoaddo.com' }}
+              style={{ cursor: 'pointer' }}
+              // onClick={() => { window.location.href = 'mailto:marigoldakufoaddo@gmail.com' }}
+              onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = 'mailto:marigoldakufoaddo@gmail.com' }}
             >
               get in touch
-            </span>
+            </a>
           </span>
           {',\u00A0'}
           <br />

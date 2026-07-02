@@ -357,6 +357,7 @@ nav.primary-nav ul li a { font-size: 0.75rem; letter-spacing: 3px; text-transfor
 .home-works-wrapper {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   overflow: hidden;
+  touch-action: pan-y;
 }
 .home-works-content { will-change: transform; padding-top: 100px; }
 
@@ -764,7 +765,6 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   .home-works-right { display: none; }
 
   /* Works detail (lightbox) */
-  .work-single .img-container img { width: 92vw; height: 58vh; }
   .info-nav { padding: 0 16px; bottom: 24px; }
   .works-close { right: 16px; top: 24px; }
 
@@ -797,7 +797,7 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   .home-work-item { width: 90vw; }
   .home-work-img { height: 28vh; }
 
-  .work-single .img-container img { width: 96vw; height: 52vh; }
+  .work-single .img-container img { height: 52vh; }
 
   .page-a-propos p { font-size: 0.95em; padding: 22% 6% 5% 6%; }
 
@@ -806,4 +806,16 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   .copyright p{
     width: 80%;
   }
+}
+
+/* ── REAL TOUCH DEVICES (pointer: coarse) ──
+   DevTools responsive simulation stays pointer:fine so this won't affect it.
+   Real phones and iPads match pointer:coarse. */
+@media (pointer: coarse) {
+  /* Hide custom cursor entirely */
+  .cursor-container { display: none !important; }
+
+  /* Restore default cursor on elements that set cursor:none */
+  * { cursor: auto !important; }
+  a, button, [data-cursor="link"] { cursor: pointer !important; }
 }

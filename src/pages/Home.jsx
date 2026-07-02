@@ -220,7 +220,7 @@ export default function Home({ navigateTo }) {
       orientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.4,
-      touchMultiplier: 0.8,
+      touchMultiplier: 2,
     })
     lenis.scrollTo(0, { immediate: true })
     lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })
@@ -248,16 +248,22 @@ export default function Home({ navigateTo }) {
     return () => el.removeEventListener('wheel', onWheel, { capture: true })
   }, [phase, startReturn])
 
-  // Hammer on works (touch)
+  // Touch swipe-down at top → return to hero (native listeners, not Hammer, so Lenis touch scroll is unblocked)
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
-    const hammer = new Hammer.Manager(el)
-    hammer.add(new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 20 }))
-    hammer.on('pandown', () => {
-      if (worksScrollY.current <= 5) startReturn()
-    })
-    return () => hammer.destroy()
+    let touchStartY = 0
+    const onTouchStart = (e) => { touchStartY = e.touches[0].clientY }
+    const onTouchEnd = (e) => {
+      const dy = e.changedTouches[0].clientY - touchStartY
+      if (dy > 40 && worksScrollY.current <= 5) startReturn()
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
   }, [phase, startReturn])
 
   const [worksExiting, setWorksExiting] = useState(false)

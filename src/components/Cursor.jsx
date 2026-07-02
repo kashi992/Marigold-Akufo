@@ -81,7 +81,7 @@ export default function Cursor() {
       if (el.closest('.works-close')) {
         b.classList.add('is-cross-in-over')
         b.classList.remove('is-link-over')
-      } else if (el.closest('nav.primary-nav a, nav.mobile-menu a, footer a')) {
+      } else if (el.closest('nav.primary-nav a, nav.mobile-menu a, footer a, .contact-link')) {
         // Nav items and social icons — show OS pointer + keep ring visible
         b.classList.remove('is-no-cursor')
         b.classList.remove('is-link-over')
