@@ -215,64 +215,39 @@ export default function Home({ navigateTo }) {
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
     if (isTouch) {
-      // ── MOBILE: position:fixed + overflow-y:scroll = native GPU scroll during drag
-      // GSAP animates the post-lift deceleration (rAF-based, smooth)
+      // Pure native scroll — fastest, smoothest path on mobile
+      // position:fixed escapes all overflow:hidden ancestors
+      // overflow-y:scroll gives iOS/Android their own native momentum engine
       el.style.position = 'fixed'
       el.style.overflowY = 'scroll'
+      el.style.webkitOverflowScrolling = 'touch'
       el.scrollTop = 0
-
-      let startY = 0, lastY = 0, vel = 0
 
       const onScroll = () => { worksScrollY.current = el.scrollTop }
       el.addEventListener('scroll', onScroll, { passive: true })
 
-      const onTouchStart = (e) => {
-        startY = lastY = e.touches[0].clientY
-        vel = 0
-        gsap.killTweensOf(el) // stop any ongoing deceleration
+      // Swipe down at top → return to hero
+      let startY = 0
+      const onTouchStart = (e) => { startY = e.touches[0].clientY }
+      const onTouchEnd = (e) => {
+        const dy = e.changedTouches[0].clientY - startY
+        if (dy > 40 && worksScrollY.current <= 5) startReturn()
       }
-
-      const onTouchMove = (e) => {
-        const y = e.touches[0].clientY
-        vel = lastY - y       // pixels moved this frame
-        lastY = y
-        // native scrollTop during drag — in sync with GPU, no jank
-        el.scrollTop += vel
-      }
-
-      const onTouchEnd = () => {
-        // swipe down at top → return to hero
-        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
-          startReturn()
-          return
-        }
-        // GSAP deceleration — same feel as Lenis desktop
-        const target = Math.max(0, el.scrollTop + vel * 18)
-        gsap.to(el, {
-          scrollTop: target,
-          duration: 1.6,
-          ease: 'power3.out',
-          onUpdate: () => { worksScrollY.current = el.scrollTop },
-        })
-      }
-
       el.addEventListener('touchstart', onTouchStart, { passive: true })
-      el.addEventListener('touchmove', onTouchMove, { passive: true })
       el.addEventListener('touchend', onTouchEnd, { passive: true })
 
       return () => {
-        gsap.killTweensOf(el)
         el.removeEventListener('scroll', onScroll)
         el.removeEventListener('touchstart', onTouchStart)
-        el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
         el.style.position = ''
         el.style.overflowY = ''
+        el.style.webkitOverflowScrolling = ''
         worksScrollY.current = 0
       }
     }
 
-    // ── DESKTOP: Lenis smooth wheel scroll ──
+    // Desktop — Lenis smooth wheel scroll
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
@@ -298,12 +273,11 @@ export default function Home({ navigateTo }) {
     }
   }, [phase, startReturn])
 
-  // Wheel on works — scroll up at top goes back to hero
+  // Wheel on works — scroll up at top → back to hero (desktop only)
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
-    const isTouch = window.matchMedia('(pointer: coarse)').matches
-    if (isTouch) return // touch handles this inside its own block above
+    if (window.matchMedia('(pointer: coarse)').matches) return
     const onWheel = (e) => {
       if (e.deltaY < 0 && worksScrollY.current <= 5) {
         e.preventDefault()
