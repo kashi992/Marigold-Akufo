@@ -213,12 +213,8 @@ export default function Home({ navigateTo }) {
     worksScrollY.current = 0
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
-    // Mobile: position:fixed escapes overflow:hidden ancestors so Lenis gets touch events
-    // overflow-y:scroll is required so Lenis scrollTop setter actually moves content
-    if (isTouch) {
-      el.style.position = 'fixed'
-      el.style.overflowY = 'scroll'
-    }
+    // Mobile: position:fixed escapes overflow:hidden ancestors so touch events reach Lenis
+    if (isTouch) el.style.position = 'fixed'
 
     const lenis = new Lenis({
       wrapper: el,
@@ -227,7 +223,9 @@ export default function Home({ navigateTo }) {
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       smoothWheel: !isTouch,
-      smoothTouch: isTouch,
+      syncTouch: isTouch,         // correct Lenis v1 option for smooth touch (not smoothTouch)
+      syncTouchLerp: 0.1,
+      touchInertiaMultiplier: 20,
       touchMultiplier: 2,
       wheelMultiplier: 0.4,
     })
@@ -244,10 +242,7 @@ export default function Home({ navigateTo }) {
       lenis.destroy()
       lenisRef.current = null
       worksScrollY.current = 0
-      if (isTouch) {
-        el.style.position = ''
-        el.style.overflowY = ''
-      }
+      if (isTouch) el.style.position = ''
     }
   }, [phase])
 
