@@ -61,8 +61,8 @@ export default function Contact() {
               role="link"
               tabIndex={0}
               data-cursor="link"
-              style={{ cursor: 'pointer' }}
-              // onClick={() => { window.location.href = 'mailto:marigoldakufoaddo@gmail.com' }}
+              style={{ cursor: 'default' }}
+              onTouchEnd={(e) => { e.preventDefault(); window.location.href = 'mailto:marigoldakufoaddo@gmail.com' }}
               onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = 'mailto:marigoldakufoaddo@gmail.com' }}
             >
               get in touch
