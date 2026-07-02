@@ -225,62 +225,60 @@ export default function Home({ navigateTo }) {
       const content = el.firstElementChild
       const getMax = () => Math.max(0, content.scrollHeight - window.innerHeight)
 
-      // Velocity-decay momentum — each frame: pos += vel; vel *= DECAY
-      // DECAY = 0.97 → ~5s coast (0.97^300frames ≈ 1% remaining)
-      const DECAY = 0.992
-      let velocity = 0       // px/frame, decays each frame after lift
+      // Lerp scroll — scrollCurrent chases scrollTarget every frame
+      // LERP = 0.06 → smooth ~2.5s deceleration after momentum throw
+      const LERP = 0.06
+      let scrollTarget = 0
       let scrollCurrent = 0
 
       let rafId
-      function scrollRaf() {
-        // Apply decaying velocity every frame
-        if (Math.abs(velocity) > 0.1) {
-          velocity *= DECAY
-          const max = getMax()
-          scrollCurrent = Math.max(0, Math.min(max, scrollCurrent + velocity))
-          // Bounce-stop at boundaries
-          if (scrollCurrent === 0 || scrollCurrent === max) velocity = 0
-        }
+      function lerpRaf() {
+        scrollCurrent += (scrollTarget - scrollCurrent) * LERP
+        if (Math.abs(scrollTarget - scrollCurrent) < 0.05) scrollCurrent = scrollTarget
         content.style.transform = `translate3d(0, ${-scrollCurrent}px, 0)`
         worksScrollY.current = scrollCurrent
-        rafId = requestAnimationFrame(scrollRaf)
+        rafId = requestAnimationFrame(lerpRaf)
       }
-      rafId = requestAnimationFrame(scrollRaf)
+      rafId = requestAnimationFrame(lerpRaf)
 
       let startY = 0, lastY = 0, lastTime = 0
-      const velHistory = []
+      // Store timestamped moves for last 100ms — ignores slow frames at finger lift
+      const moves = []
 
       const onTouchStart = (e) => {
         startY = lastY = e.touches[0].clientY
         lastTime = e.timeStamp
-        velHistory.length = 0
-        velocity = 0 // stop any ongoing momentum when finger touches
+        moves.length = 0
+        scrollTarget = scrollCurrent // kill ongoing momentum on new touch
       }
 
       const onTouchMove = (e) => {
         e.preventDefault()
         const y = e.touches[0].clientY
-        const dt = e.timeStamp - lastTime || 1
-        const dy = lastY - y // positive = scrolling down
-        velHistory.push(dy / dt)
-        if (velHistory.length > 5) velHistory.shift()
+        const dy = lastY - y
+        moves.push({ dy, t: e.timeStamp })
         lastY = y
         lastTime = e.timeStamp
-        const max = getMax()
-        scrollCurrent = Math.max(0, Math.min(max, scrollCurrent + dy))
+        // Instant follow during drag
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + dy))
+        scrollCurrent = scrollTarget
       }
 
-      const onTouchEnd = () => {
+      const onTouchEnd = (e) => {
         // Swipe down at top → return to hero
         if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
           startReturn()
           return
         }
-        // Seed velocity from last gesture speed — DECAY loop takes it from here
-        const avgVel = velHistory.length
-          ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
-          : 0
-        velocity = avgVel * 40 // high seed so a fast swipe travels far
+        // Use only moves from the last 80ms — captures true lift velocity
+        const now = e.timeStamp
+        const recent = moves.filter(m => now - m.t < 80)
+        if (!recent.length) return
+        const totalDy = recent.reduce((s, m) => s + m.dy, 0)
+        const elapsed = (recent[recent.length - 1].t - recent[0].t) || 1
+        const vel = totalDy / elapsed // px/ms
+        // Throw scrollTarget — lerp glides to it slowly
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + vel * 1200))
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -289,7 +287,6 @@ export default function Home({ navigateTo }) {
 
       return () => {
         cancelAnimationFrame(rafId)
-        velocity = 0
         content.style.transform = ''
         el.style.position = ''
         el.style.top = ''
@@ -381,7 +378,7 @@ export default function Home({ navigateTo }) {
         <div className="home-hero-bg" style={{ backgroundImage: `url('/images/hero.jpg')` }} />
         <div className="home-hero-center">
           <p className="home-hero-title">
-            <SplitChars text="marigold akufo-addo1122" />
+            <SplitChars text="marigold akufo-addo" />
           </p>
           <div className="home-hero-line" />
         </div>
