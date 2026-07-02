@@ -226,7 +226,7 @@ export default function Home({ navigateTo }) {
       const getMax = () => Math.max(0, content.scrollHeight - window.innerHeight)
 
       // LERP = 0.075 matches reference site ease. This gives ~1.5s smooth deceleration.
-      const LERP = 0.1
+      const LERP = 0.05
       let scrollTarget = 0
       let scrollCurrent = 0
 
@@ -274,7 +274,7 @@ export default function Home({ navigateTo }) {
           ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
           : 0
         // Momentum throw — 300ms worth of velocity, LERP will ease it out slowly
-        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + avgVel * 900))
+        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + avgVel * 1500))
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
