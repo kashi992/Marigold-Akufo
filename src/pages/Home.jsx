@@ -257,11 +257,11 @@ export default function Home({ navigateTo }) {
         const avgVel = vel.length
           ? vel.reduce((a, b) => a + b, 0) / vel.length
           : 0
-        const target = Math.min(0, Math.max(-getMax(), currentY + avgVel * 500))
+        const target = Math.min(0, Math.max(-getMax(), currentY + avgVel * 1200))
         gsap.to(content, {
           y: target,
-          duration: 2,
-          ease: 'power3.out',
+          duration: 4,
+          ease: 'expo.out',
           onUpdate: () => {
             currentY = gsap.getProperty(content, 'y')
             worksScrollY.current = -currentY
