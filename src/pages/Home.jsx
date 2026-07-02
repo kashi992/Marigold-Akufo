@@ -214,88 +214,41 @@ export default function Home({ navigateTo }) {
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
     if (isTouch) {
-      // --- Mobile: virtual scroll via translate3d, same technique as reference site ---
-      // Body has overflow:hidden so we escape it with position:fixed and move content via transform
+      // Native iOS scroll — position:fixed escapes overflow:hidden ancestors,
+      // overflow-y:scroll gives the browser full momentum physics (no JS needed)
       el.style.position = 'fixed'
       el.style.top = '0'
       el.style.left = '0'
       el.style.width = '100%'
       el.style.height = '100%'
+      el.style.overflowY = 'scroll'
+      el.style.webkitOverflowScrolling = 'touch'
+      el.scrollTop = 0
 
-      const content = el.firstElementChild
-      const getMax = () => Math.max(0, content.scrollHeight - window.innerHeight)
+      let startY = 0
 
-      // Lerp scroll — scrollCurrent chases scrollTarget every frame
-      // LERP = 0.06 → smooth ~2.5s deceleration after momentum throw
-      const LERP = 0.06
-      let scrollTarget = 0
-      let scrollCurrent = 0
-
-      let rafId
-      function lerpRaf() {
-        scrollCurrent += (scrollTarget - scrollCurrent) * LERP
-        if (Math.abs(scrollTarget - scrollCurrent) < 0.05) scrollCurrent = scrollTarget
-        content.style.transform = `translate3d(0, ${-scrollCurrent}px, 0)`
-        worksScrollY.current = scrollCurrent
-        rafId = requestAnimationFrame(lerpRaf)
-      }
-      rafId = requestAnimationFrame(lerpRaf)
-
-      let startY = 0, lastY = 0, lastTime = 0
-      // Store timestamped moves for last 100ms — ignores slow frames at finger lift
-      const moves = []
-
-      const onTouchStart = (e) => {
-        startY = lastY = e.touches[0].clientY
-        lastTime = e.timeStamp
-        moves.length = 0
-        scrollTarget = scrollCurrent // kill ongoing momentum on new touch
-      }
-
-      const onTouchMove = (e) => {
-        e.preventDefault()
-        const y = e.touches[0].clientY
-        const dy = lastY - y
-        moves.push({ dy, t: e.timeStamp })
-        lastY = y
-        lastTime = e.timeStamp
-        // Instant follow during drag
-        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + dy))
-        scrollCurrent = scrollTarget
-      }
-
+      const onScroll = () => { worksScrollY.current = el.scrollTop }
+      const onTouchStart = (e) => { startY = e.touches[0].clientY }
       const onTouchEnd = (e) => {
-        // Swipe down at top → return to hero
-        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
-          startReturn()
-          return
-        }
-        // Use only moves from the last 80ms — captures true lift velocity
-        const now = e.timeStamp
-        const recent = moves.filter(m => now - m.t < 80)
-        if (!recent.length) return
-        const totalDy = recent.reduce((s, m) => s + m.dy, 0)
-        const elapsed = (recent[recent.length - 1].t - recent[0].t) || 1
-        const vel = totalDy / elapsed // px/ms
-        // Throw scrollTarget — lerp glides to it slowly
-        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + vel * 1200))
+        const dy = e.changedTouches[0].clientY - startY
+        if (dy > 40 && worksScrollY.current <= 5) startReturn()
       }
 
+      el.addEventListener('scroll', onScroll, { passive: true })
       el.addEventListener('touchstart', onTouchStart, { passive: true })
-      el.addEventListener('touchmove', onTouchMove, { passive: false })
       el.addEventListener('touchend', onTouchEnd, { passive: true })
 
       return () => {
-        cancelAnimationFrame(rafId)
-        content.style.transform = ''
+        el.removeEventListener('scroll', onScroll)
+        el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchend', onTouchEnd)
         el.style.position = ''
         el.style.top = ''
         el.style.left = ''
         el.style.width = ''
         el.style.height = ''
-        el.removeEventListener('touchstart', onTouchStart)
-        el.removeEventListener('touchmove', onTouchMove)
-        el.removeEventListener('touchend', onTouchEnd)
+        el.style.overflowY = ''
+        el.style.webkitOverflowScrolling = ''
         worksScrollY.current = 0
       }
     }

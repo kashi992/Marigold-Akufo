@@ -357,9 +357,6 @@ nav.primary-nav ul li a { font-size: 0.75rem; letter-spacing: 3px; text-transfor
 .home-works-wrapper {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   overflow: hidden;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
-  will-change: scroll-position;
 }
 .home-works-content { will-change: transform; padding-top: 100px; }
 .home-work-img { will-change: transform; }
