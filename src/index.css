@@ -827,13 +827,11 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   .page-contact .contact { overflow: visible; }
   .word-clip { overflow: visible; }
 
-  /* Works scroll — GPU layer + hide scrollbar + remove heavy will-change */
-  .home-works-wrapper {
-    transform: translateZ(0);
-    will-change: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  /* Works scroll — hide scrollbar, remove all transforms/will-change overhead */
+  .home-works-wrapper { will-change: auto; scrollbar-width: none; }
   .home-works-wrapper::-webkit-scrollbar { display: none; }
   .home-works-content { will-change: auto; }
-  .home-work-img { will-change: auto; transform: none !important; }
+  /* Disable image hover scale on touch — creates stacking contexts that kill scroll perf */
+  .home-work-img { will-change: auto; }
+  .home-work-img img { transform: none !important; transition: none !important; }
 }
