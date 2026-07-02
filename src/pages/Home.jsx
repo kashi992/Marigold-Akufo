@@ -213,30 +213,22 @@ export default function Home({ navigateTo }) {
     worksScrollY.current = 0
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
+    // Mobile: position:fixed escapes overflow:hidden ancestors so Lenis gets touch events
+    // overflow-y:scroll is required so Lenis scrollTop setter actually moves content
     if (isTouch) {
-      // position:fixed takes element out of overflow:hidden ancestors → native
-      // iOS/Android momentum scroll works properly
       el.style.position = 'fixed'
       el.style.overflowY = 'scroll'
-      el.scrollTop = 0
-      const onScroll = () => { worksScrollY.current = el.scrollTop }
-      el.addEventListener('scroll', onScroll, { passive: true })
-      return () => {
-        el.removeEventListener('scroll', onScroll)
-        el.style.position = ''
-        el.style.overflowY = ''
-        worksScrollY.current = 0
-      }
     }
 
-    // Desktop — Lenis smooth scroll
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
-      duration: 5,
+      duration: isTouch ? 2 : 5,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !isTouch,
+      smoothTouch: isTouch,
+      touchMultiplier: 2,
       wheelMultiplier: 0.4,
     })
     lenis.scrollTo(0, { immediate: true })
@@ -252,6 +244,10 @@ export default function Home({ navigateTo }) {
       lenis.destroy()
       lenisRef.current = null
       worksScrollY.current = 0
+      if (isTouch) {
+        el.style.position = ''
+        el.style.overflowY = ''
+      }
     }
   }, [phase])
 
