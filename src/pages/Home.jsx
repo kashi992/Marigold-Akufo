@@ -228,86 +228,83 @@ export default function Home({ navigateTo }) {
       const content = el.firstElementChild
       content.style.willChange = 'transform'
 
-      // scroll = how far content is pushed up (>= 0). translateY = -scroll.
+      // Lenis-style model: a `target` we push toward with the finger, and an
+      // actual `scroll` that eases toward `target` EVERY frame. The rAF loop
+      // never stops, so both the drag and the coast are smoothed the same way.
+      // A big LERP-per-frame that's small => long, icy glide.
+      let target = 0
       let scroll = 0
+      let running = true
+      let dragging = false
+      let downFromTop = false
+      let lastY = 0
+
       const maxScroll = () =>
         Math.max(0, content.scrollHeight - el.clientHeight)
 
-      const apply = () => {
+      // Smoothing per frame. Lower = slower/smoother/longer glide.
+      // 0.05 ≈ very icy (several seconds to settle); 0.12 ≈ snappier.
+      const EASE = 0.06
+      // Below this gap we consider it arrived.
+      const SETTLE = 0.1
+
+      const clamp = (v) => {
+        if (v < 0) return 0
+        const max = maxScroll()
+        return v > max ? max : v
+      }
+
+      const frame = () => {
+        if (!running) return
+        // Ease actual position toward the target every frame.
+        const diff = target - scroll
+        if (Math.abs(diff) > SETTLE) {
+          scroll += diff * EASE
+        } else {
+          scroll = target
+        }
         content.style.transform = `translate3d(0, ${-scroll}px, 0)`
         worksScrollY.current = scroll
+        rafRef = requestAnimationFrame(frame)
       }
-
-      let dragging = false
-      let lastY = 0
-      let lastT = 0
-      let velocity = 0
-      let downFromTop = false
-
-      const MIN_VELOCITY = 0.08
-      const FLING_BOOST = 1.8
-      const MAX_VELOCITY = 120
-
-      // Read the actual rendered Y even mid CSS-transition via computed matrix
-      const getRenderedScroll = () => {
-        const m = new DOMMatrix(getComputedStyle(content).transform)
-        return Math.max(0, -m.m42)
-      }
+      let rafRef = requestAnimationFrame(frame)
 
       const onTouchStart = (e) => {
-        // Freeze content exactly where it is — stops any running CSS transition
-        scroll = getRenderedScroll()
-        content.style.transition = 'none'
-        content.style.transform = `translate3d(0,${-scroll}px,0)`
-        worksScrollY.current = scroll
-
         dragging = true
+        // Touching while it's still gliding: freeze it where it visually is,
+        // so a new touch stops the coast immediately.
+        target = scroll
         lastY = e.touches[0].clientY
-        lastT = e.timeStamp || performance.now()
-        velocity = 0
-        downFromTop = scroll <= 0
+        downFromTop = scroll <= 0.5
       }
 
       const onTouchMove = (e) => {
         if (!dragging) return
         e.preventDefault()
-        const now = e.timeStamp || performance.now()
-        const dy = e.touches[0].clientY - lastY
+        const y = e.touches[0].clientY
+        const dy = y - lastY // finger down (positive) => scroll up (toward top)
+        lastY = y
 
-        if (!(downFromTop && scroll <= 0 && dy > 0)) {
-          downFromTop = false
-          scroll = Math.max(0, Math.min(maxScroll(), scroll - dy))
-          content.style.transform = `translate3d(0,${-scroll}px,0)`
-          worksScrollY.current = scroll
-        }
+        // Pulling down while already at the very top: leave it, let touchend
+        // decide whether to startReturn().
+        if (downFromTop && target <= 0.5 && dy > 0) return
+        downFromTop = false
 
-        const dt = now - lastT
-        if (dt > 0) velocity = velocity * 0.7 + (-dy) * (16 / dt) * 0.3
-        lastY = e.touches[0].clientY
-        lastT = now
+        // Push the TARGET, not the actual scroll. Multiplier controls how far
+        // the content travels per unit of finger travel while dragging. >1 makes
+        // a swipe throw the target ahead of the finger, so momentum carries after
+        // release without any velocity bookkeeping.
+        target = clamp(target - dy * 1.15)
       }
 
-      const onTouchEnd = (e) => {
+      const onTouchEnd = () => {
         if (!dragging) return
         dragging = false
-
-        if (downFromTop && scroll <= 0) { startReturn(); return }
-
-        let release = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, velocity * FLING_BOOST))
-        if (Math.abs(release) < MIN_VELOCITY) return
-
-        // Throw distance = geometric series of decay (same as DECAY=0.992 rAF loop)
-        // But deceleration runs on the GPU compositor via CSS transition — never drops frames
-        const throwDist = release * 125
-        const target = Math.max(0, Math.min(maxScroll(), scroll + throwDist))
-        // Duration scales with speed: fast swipe = longer coast, slow swipe = shorter
-        const duration = Math.min(5, Math.max(0.8, Math.abs(release) * 0.07))
-
-        scroll = target
-        worksScrollY.current = target
-        // cubic-bezier(0.16, 1, 0.3, 1) = "expo out" — rockets off then coasts to a whisper
-        content.style.transition = `transform ${duration}s cubic-bezier(0.16,1,0.3,1)`
-        content.style.transform = `translate3d(0,${-target}px,0)`
+        if (downFromTop && scroll <= 1) {
+          startReturn()
+        }
+        // Nothing else to do: the frame loop keeps easing `scroll` toward the
+        // `target` we already threw ahead, producing the long coast.
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -315,12 +312,11 @@ export default function Home({ navigateTo }) {
       el.addEventListener('touchend', onTouchEnd, { passive: true })
       el.addEventListener('touchcancel', onTouchEnd, { passive: true })
 
-      apply()
+      content.style.transform = 'translate3d(0, 0, 0)'
 
       return () => {
-        content.style.transition = ''
-        content.style.transform = ''
-        content.style.willChange = ''
+        running = false
+        cancelAnimationFrame(rafRef)
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
@@ -331,6 +327,8 @@ export default function Home({ navigateTo }) {
         el.style.width = ''
         el.style.height = ''
         el.style.overflowY = ''
+        content.style.transform = ''
+        content.style.willChange = ''
         worksScrollY.current = 0
       }
     }
