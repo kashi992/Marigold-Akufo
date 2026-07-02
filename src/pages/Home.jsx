@@ -225,21 +225,27 @@ export default function Home({ navigateTo }) {
       const content = el.firstElementChild
       const getMax = () => Math.max(0, content.scrollHeight - window.innerHeight)
 
-      // LERP = 0.075 matches reference site ease. This gives ~1.5s smooth deceleration.
-      const LERP = 0.015
-      let scrollTarget = 0
+      // Velocity-decay momentum — each frame: pos += vel; vel *= DECAY
+      // DECAY = 0.97 → ~5s coast (0.97^300frames ≈ 1% remaining)
+      const DECAY = 0.97
+      let velocity = 0       // px/frame, decays each frame after lift
       let scrollCurrent = 0
 
       let rafId
-      function lerpRaf() {
-        scrollCurrent += (scrollTarget - scrollCurrent) * LERP
-        // Stop rAF jitter — snap when within 0.1px
-        if (Math.abs(scrollTarget - scrollCurrent) < 0.1) scrollCurrent = scrollTarget
+      function scrollRaf() {
+        // Apply decaying velocity every frame
+        if (Math.abs(velocity) > 0.1) {
+          velocity *= DECAY
+          const max = getMax()
+          scrollCurrent = Math.max(0, Math.min(max, scrollCurrent + velocity))
+          // Bounce-stop at boundaries
+          if (scrollCurrent === 0 || scrollCurrent === max) velocity = 0
+        }
         content.style.transform = `translate3d(0, ${-scrollCurrent}px, 0)`
         worksScrollY.current = scrollCurrent
-        rafId = requestAnimationFrame(lerpRaf)
+        rafId = requestAnimationFrame(scrollRaf)
       }
-      rafId = requestAnimationFrame(lerpRaf)
+      rafId = requestAnimationFrame(scrollRaf)
 
       let startY = 0, lastY = 0, lastTime = 0
       const velHistory = []
@@ -248,7 +254,7 @@ export default function Home({ navigateTo }) {
         startY = lastY = e.touches[0].clientY
         lastTime = e.timeStamp
         velHistory.length = 0
-        scrollTarget = scrollCurrent // snap target to current to stop any ongoing momentum
+        velocity = 0 // stop any ongoing momentum when finger touches
       }
 
       const onTouchMove = (e) => {
@@ -260,8 +266,8 @@ export default function Home({ navigateTo }) {
         if (velHistory.length > 5) velHistory.shift()
         lastY = y
         lastTime = e.timeStamp
-        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + dy))
-        scrollCurrent = scrollTarget // instant follow during drag
+        const max = getMax()
+        scrollCurrent = Math.max(0, Math.min(max, scrollCurrent + dy))
       }
 
       const onTouchEnd = () => {
@@ -270,11 +276,11 @@ export default function Home({ navigateTo }) {
           startReturn()
           return
         }
+        // Seed velocity from last gesture speed — DECAY loop takes it from here
         const avgVel = velHistory.length
           ? velHistory.reduce((a, b) => a + b, 0) / velHistory.length
           : 0
-        // Momentum throw — 300ms worth of velocity, LERP will ease it out slowly
-        scrollTarget = Math.max(0, Math.min(getMax(), scrollTarget + avgVel * 2500))
+        velocity = avgVel * 16 // convert px/ms → px/frame (16ms per frame)
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -283,6 +289,7 @@ export default function Home({ navigateTo }) {
 
       return () => {
         cancelAnimationFrame(rafId)
+        velocity = 0
         content.style.transform = ''
         el.style.position = ''
         el.style.top = ''
