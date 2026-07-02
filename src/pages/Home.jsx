@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Hammer from 'hammerjs'
 import Lenis from '@studio-freight/lenis'
+import { gsap } from 'gsap'
 import { useSite } from '../context/SiteContext'
 import { paintings, drawings } from '../data/artworks'
 
@@ -212,18 +213,73 @@ export default function Home({ navigateTo }) {
 
     worksScrollY.current = 0
     const isTouch = window.matchMedia('(pointer: coarse)').matches
-    const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
-    if (isTouch) el.style.position = 'fixed'
+    if (isTouch) {
+      // ── MOBILE: position:fixed + overflow-y:scroll = native GPU scroll during drag
+      // GSAP animates the post-lift deceleration (rAF-based, smooth)
+      el.style.position = 'fixed'
+      el.style.overflowY = 'scroll'
+      el.scrollTop = 0
 
+      let startY = 0, lastY = 0, vel = 0
+
+      const onScroll = () => { worksScrollY.current = el.scrollTop }
+      el.addEventListener('scroll', onScroll, { passive: true })
+
+      const onTouchStart = (e) => {
+        startY = lastY = e.touches[0].clientY
+        vel = 0
+        gsap.killTweensOf(el) // stop any ongoing deceleration
+      }
+
+      const onTouchMove = (e) => {
+        const y = e.touches[0].clientY
+        vel = lastY - y       // pixels moved this frame
+        lastY = y
+        // native scrollTop during drag — in sync with GPU, no jank
+        el.scrollTop += vel
+      }
+
+      const onTouchEnd = () => {
+        // swipe down at top → return to hero
+        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
+          startReturn()
+          return
+        }
+        // GSAP deceleration — same feel as Lenis desktop
+        const target = Math.max(0, el.scrollTop + vel * 18)
+        gsap.to(el, {
+          scrollTop: target,
+          duration: 1.6,
+          ease: 'power3.out',
+          onUpdate: () => { worksScrollY.current = el.scrollTop },
+        })
+      }
+
+      el.addEventListener('touchstart', onTouchStart, { passive: true })
+      el.addEventListener('touchmove', onTouchMove, { passive: true })
+      el.addEventListener('touchend', onTouchEnd, { passive: true })
+
+      return () => {
+        gsap.killTweensOf(el)
+        el.removeEventListener('scroll', onScroll)
+        el.removeEventListener('touchstart', onTouchStart)
+        el.removeEventListener('touchmove', onTouchMove)
+        el.removeEventListener('touchend', onTouchEnd)
+        el.style.position = ''
+        el.style.overflowY = ''
+        worksScrollY.current = 0
+      }
+    }
+
+    // ── DESKTOP: Lenis smooth wheel scroll ──
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
       duration: 5,
-      easing,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       smoothWheel: true,
-      syncTouch: false, // we drive touch manually below for identical easing to desktop
       wheelMultiplier: 0.4,
     })
     lenis.scrollTo(0, { immediate: true })
@@ -233,56 +289,6 @@ export default function Home({ navigateTo }) {
     let rafId
     function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
     rafId = requestAnimationFrame(raf)
-
-    // ── Custom touch → same Lenis easing as desktop wheel ──
-    if (isTouch) {
-      let startY = 0, lastY = 0, lastTime = 0, vel = 0
-
-      const onTouchStart = (e) => {
-        startY = lastY = e.touches[0].clientY
-        lastTime = Date.now()
-        vel = 0
-        lenis.scrollTo(lenis.scroll, { immediate: true }) // stop ongoing animation
-      }
-
-      const onTouchMove = (e) => {
-        e.preventDefault()
-        const y = e.touches[0].clientY
-        const now = Date.now()
-        const dy = lastY - y
-        const dt = now - lastTime || 1
-        vel = dy / dt // px per ms
-        lastY = y
-        lastTime = now
-        lenis.scrollTo(lenis.scroll + dy, { immediate: true }) // follow finger exactly
-      }
-
-      const onTouchEnd = () => {
-        // swipe down at top → return to hero
-        if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
-          startReturn()
-          return
-        }
-        // momentum: fire scrollTo with same duration+easing as desktop
-        const momentum = vel * 600
-        lenis.scrollTo(lenis.scroll + momentum, { duration: 5, easing })
-      }
-
-      el.addEventListener('touchstart', onTouchStart, { passive: true })
-      el.addEventListener('touchmove', onTouchMove, { passive: false })
-      el.addEventListener('touchend', onTouchEnd, { passive: true })
-
-      return () => {
-        cancelAnimationFrame(rafId)
-        lenis.destroy()
-        lenisRef.current = null
-        worksScrollY.current = 0
-        el.style.position = ''
-        el.removeEventListener('touchstart', onTouchStart)
-        el.removeEventListener('touchmove', onTouchMove)
-        el.removeEventListener('touchend', onTouchEnd)
-      }
-    }
 
     return () => {
       cancelAnimationFrame(rafId)
@@ -296,6 +302,8 @@ export default function Home({ navigateTo }) {
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
+    if (isTouch) return // touch handles this inside its own block above
     const onWheel = (e) => {
       if (e.deltaY < 0 && worksScrollY.current <= 5) {
         e.preventDefault()
