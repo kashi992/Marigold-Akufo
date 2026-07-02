@@ -216,14 +216,19 @@ export default function Home({ navigateTo }) {
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
     if (isTouch) {
-      // Native scroll — reliable on iOS/Android (Lenis needs overflow:hidden which breaks mobile touch)
+      // position:fixed + overflow-y:scroll gives iOS/Android hardware-accelerated scroll.
+      // position:absolute nested in overflow:hidden ancestors blocks GPU scroll layers.
+      el.style.position = 'fixed'
       el.style.overflowY = 'scroll'
+      el.style.overflowX = 'hidden'
       el.style.webkitOverflowScrolling = 'touch'
       const onScroll = () => { worksScrollY.current = el.scrollTop }
       el.addEventListener('scroll', onScroll, { passive: true })
       return () => {
         el.removeEventListener('scroll', onScroll)
-        el.style.overflowY = 'hidden'
+        el.style.position = ''
+        el.style.overflowY = ''
+        el.style.overflowX = ''
         el.style.webkitOverflowScrolling = ''
         worksScrollY.current = 0
       }
@@ -318,7 +323,7 @@ export default function Home({ navigateTo }) {
         <div className="home-hero-bg" style={{ backgroundImage: `url('/images/hero.jpg')` }} />
         <div className="home-hero-center">
           <p className="home-hero-title">
-            <SplitChars text="marigold akufo-addo44" />
+            <SplitChars text="marigold akufo-addo55" />
           </p>
           <div className="home-hero-line" />
         </div>
