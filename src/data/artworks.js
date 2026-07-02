@@ -1,5 +1,5 @@
 export const paintings = [
-  { id: 0, slug: 'untitled-i',           src: '/images/artwork-11.jpg', title: 'Untitled I',           medium: 'Mixed media on canvas',  year: '1968',      dimensions: '60 × 60 cm' },
+  { id: 0, slug: 'mosaic-portrait',      src: '/images/artwork-11.jpg', title: 'Mosaic Portrait',      medium: 'Mixed media on canvas',  year: '1968',      dimensions: '60 × 60 cm' },
   { id: 1, slug: 'woman-on-rock',        src: '/images/artwork-03.jpg', title: 'Woman on Rock',        medium: 'Acrylic on canvas',       year: 'c. 1970s',  dimensions: '80 × 80 cm' },
   { id: 2, slug: 'interior-with-cat',   src: '/images/artwork-04.jpg', title: 'Interior with Cat',    medium: 'Mixed media on board',    year: '1983',      dimensions: '195 × 130 cm' },
   { id: 3, slug: 'girl-with-flower',    src: '/images/artwork-01.jpg', title: 'Girl with Flower',     medium: 'Mixed media on canvas',   year: 'c. 1970s',  dimensions: '40 × 40 cm' },
