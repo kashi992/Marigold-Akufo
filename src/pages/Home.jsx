@@ -217,58 +217,53 @@ export default function Home({ navigateTo }) {
     const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
     if (isTouch) {
-      // position:fixed escapes overflow:hidden ancestors
-      // overflow-y:scroll is REQUIRED for iOS Safari to allow scrollTop changes
       el.style.position = 'fixed'
       el.style.overflowY = 'scroll'
       el.scrollTop = 0
 
-      const lenis = new Lenis({
-        wrapper: el,
-        content: el.firstElementChild,
-        duration: 5,
-        easing,
-        orientation: 'vertical',
-        smoothWheel: false,
-        syncTouch: false,
-      })
-      lenis.scrollTo(0, { immediate: true })
-      lenis.on('scroll', ({ scroll }) => { worksScrollY.current = scroll })
-      lenisRef.current = lenis
+      const onScroll = () => { worksScrollY.current = el.scrollTop }
+      el.addEventListener('scroll', onScroll, { passive: true })
 
-      let rafId
-      function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
-      rafId = requestAnimationFrame(raf)
-
-      let startY = 0, lastY = 0, lastTime = 0, vel = 0
+      let startY = 0, lastY = 0, lastTime = 0
+      const recentVelocities = []
 
       const onTouchStart = (e) => {
         startY = lastY = e.touches[0].clientY
-        lastTime = Date.now()
-        vel = 0
-        lenis.scrollTo(lenis.scroll, { immediate: true }) // stop any ongoing animation
+        lastTime = e.timeStamp
+        recentVelocities.length = 0
+        gsap.killTweensOf(el)
       }
 
       const onTouchMove = (e) => {
-        e.preventDefault() // block native scroll — we control it
+        e.preventDefault()
         const y = e.touches[0].clientY
-        const now = Date.now()
+        const dt = e.timeStamp - lastTime || 1
         const dy = lastY - y
-        const dt = now - lastTime || 1
-        vel = dy / dt          // px per ms
+        recentVelocities.push(dy / dt) // px/ms — track last few frames
+        if (recentVelocities.length > 5) recentVelocities.shift()
         lastY = y
-        lastTime = now
-        lenis.scrollTo(lenis.scroll + dy, { immediate: true }) // follow finger
+        lastTime = e.timeStamp
+        el.scrollTop += dy
+        worksScrollY.current = el.scrollTop
       }
 
       const onTouchEnd = (e) => {
-        e.preventDefault() // block native momentum — Lenis takes over
+        e.preventDefault()
         if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
           startReturn()
           return
         }
-        // Same duration + easing as desktop wheel — identical deceleration feel
-        lenis.scrollTo(lenis.scroll + vel * 500, { duration: 5, easing })
+        // Average velocity in px/ms → momentum distance
+        const avgVel = recentVelocities.length
+          ? recentVelocities.reduce((a, b) => a + b, 0) / recentVelocities.length
+          : 0
+        const target = Math.max(0, el.scrollTop + avgVel * 600)
+        gsap.to(el, {
+          scrollTop: target,
+          duration: 2,
+          ease: 'power3.out',
+          onUpdate: () => { worksScrollY.current = el.scrollTop },
+        })
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -276,15 +271,14 @@ export default function Home({ navigateTo }) {
       el.addEventListener('touchend', onTouchEnd, { passive: false })
 
       return () => {
-        cancelAnimationFrame(rafId)
-        lenis.destroy()
-        lenisRef.current = null
-        worksScrollY.current = 0
-        el.style.position = ''
-        el.style.overflowY = ''
+        gsap.killTweensOf(el)
+        el.removeEventListener('scroll', onScroll)
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
+        el.style.position = ''
+        el.style.overflowY = ''
+        worksScrollY.current = 0
       }
     }
 
