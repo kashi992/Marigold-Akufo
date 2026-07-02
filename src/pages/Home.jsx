@@ -205,43 +205,27 @@ export default function Home({ navigateTo }) {
     return () => hammer.destroy()
   }, [phase, cancelExit])
 
-  // Scroll on works section — native on touch devices, Lenis on desktop
+  // Scroll on works section — Lenis on both desktop and mobile
   useEffect(() => {
     const el = worksWrapRef.current
     if (!el || phase !== 'works') return
 
-    el.scrollTop = 0
     worksScrollY.current = 0
-
     const isTouch = window.matchMedia('(pointer: coarse)').matches
 
-    if (isTouch) {
-      // position:fixed + overflow-y:scroll gives iOS/Android hardware-accelerated scroll.
-      // position:absolute nested in overflow:hidden ancestors blocks GPU scroll layers.
-      el.style.position = 'fixed'
-      el.style.overflowY = 'scroll'
-      el.style.overflowX = 'hidden'
-      el.style.webkitOverflowScrolling = 'touch'
-      const onScroll = () => { worksScrollY.current = el.scrollTop }
-      el.addEventListener('scroll', onScroll, { passive: true })
-      return () => {
-        el.removeEventListener('scroll', onScroll)
-        el.style.position = ''
-        el.style.overflowY = ''
-        el.style.overflowX = ''
-        el.style.webkitOverflowScrolling = ''
-        worksScrollY.current = 0
-      }
-    }
+    // On touch: switch to position:fixed so Lenis touch events are not blocked
+    // by overflow:hidden ancestors (page-view, page-home)
+    if (isTouch) el.style.position = 'fixed'
 
-    // Desktop — Lenis smooth scroll
     const lenis = new Lenis({
       wrapper: el,
       content: el.firstElementChild,
-      duration: 5,
+      duration: isTouch ? 1.8 : 5,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !isTouch,
+      smoothTouch: true,
+      touchMultiplier: 2.5,
       wheelMultiplier: 0.4,
     })
     lenis.scrollTo(0, { immediate: true })
@@ -252,7 +236,13 @@ export default function Home({ navigateTo }) {
     function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
     rafId = requestAnimationFrame(raf)
 
-    return () => { cancelAnimationFrame(rafId); lenis.destroy(); lenisRef.current = null; worksScrollY.current = 0 }
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+      lenisRef.current = null
+      worksScrollY.current = 0
+      if (isTouch) el.style.position = ''
+    }
   }, [phase])
 
   // Wheel on works — scroll up at top goes back to hero (capture fires before Lenis)
