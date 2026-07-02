@@ -217,67 +217,69 @@ export default function Home({ navigateTo }) {
     const easing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
     if (isTouch) {
+      // Transform-based scroll — GPU composited, zero layout cost, smoothest on mobile
+      // overflow:hidden stays. We move content via translateY, not scrollTop.
       el.style.position = 'fixed'
-      el.style.overflowY = 'scroll'
-      el.scrollTop = 0
+      const content = el.firstElementChild
+      const getMax = () => Math.max(0, content.scrollHeight - el.clientHeight)
 
-      const onScroll = () => { worksScrollY.current = el.scrollTop }
-      el.addEventListener('scroll', onScroll, { passive: true })
-
-      let startY = 0, lastY = 0, lastTime = 0
-      const recentVelocities = []
+      let currentY = 0, startY = 0, lastY = 0, lastTime = 0
+      const vel = []
 
       const onTouchStart = (e) => {
         startY = lastY = e.touches[0].clientY
         lastTime = e.timeStamp
-        recentVelocities.length = 0
-        gsap.killTweensOf(el)
+        vel.length = 0
+        gsap.killTweensOf(content)
+        currentY = gsap.getProperty(content, 'y') // pick up from mid-animation
       }
 
       const onTouchMove = (e) => {
         e.preventDefault()
         const y = e.touches[0].clientY
         const dt = e.timeStamp - lastTime || 1
-        const dy = lastY - y
-        recentVelocities.push(dy / dt) // px/ms — track last few frames
-        if (recentVelocities.length > 5) recentVelocities.shift()
+        const dy = y - lastY // positive = finger moved down = content moves down
+        vel.push(dy / dt)
+        if (vel.length > 5) vel.shift()
         lastY = y
         lastTime = e.timeStamp
-        el.scrollTop += dy
-        worksScrollY.current = el.scrollTop
+        currentY = Math.min(0, Math.max(-getMax(), currentY + dy))
+        gsap.set(content, { y: currentY })
+        worksScrollY.current = -currentY
       }
 
-      const onTouchEnd = (e) => {
-        e.preventDefault()
+      const onTouchEnd = () => {
+        // Swipe down at top → return to hero
         if ((lastY - startY) > 40 && worksScrollY.current <= 5) {
           startReturn()
           return
         }
-        // Average velocity in px/ms → momentum distance
-        const avgVel = recentVelocities.length
-          ? recentVelocities.reduce((a, b) => a + b, 0) / recentVelocities.length
+        const avgVel = vel.length
+          ? vel.reduce((a, b) => a + b, 0) / vel.length
           : 0
-        const target = Math.max(0, el.scrollTop + avgVel * 600)
-        gsap.to(el, {
-          scrollTop: target,
+        const target = Math.min(0, Math.max(-getMax(), currentY + avgVel * 500))
+        gsap.to(content, {
+          y: target,
           duration: 2,
           ease: 'power3.out',
-          onUpdate: () => { worksScrollY.current = el.scrollTop },
+          onUpdate: () => {
+            currentY = gsap.getProperty(content, 'y')
+            worksScrollY.current = -currentY
+          },
         })
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
       el.addEventListener('touchmove', onTouchMove, { passive: false })
-      el.addEventListener('touchend', onTouchEnd, { passive: false })
+      el.addEventListener('touchend', onTouchEnd, { passive: true })
 
       return () => {
-        gsap.killTweensOf(el)
-        el.removeEventListener('scroll', onScroll)
+        gsap.killTweensOf(content)
+        gsap.set(content, { y: 0, clearProps: 'transform' })
         el.removeEventListener('touchstart', onTouchStart)
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
         el.style.position = ''
-        el.style.overflowY = ''
         worksScrollY.current = 0
       }
     }
