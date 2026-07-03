@@ -24,7 +24,7 @@ function SplitChars({ text }) {
 
 // Phases: 'hero' | 'exiting' | 'works' | 'returning'
 export default function Home({ navigateTo }) {
-  const { addClass, removeClass, scrollToTopRef, goToWorksRef } = useSite()
+  const { addClass, removeClass, scrollToTopRef } = useSite()
   const location = useLocation()
   const startOnWorks = new URLSearchParams(location.search).get('works') === '1'
   const initialPhase = startOnWorks ? 'works' : 'hero'
@@ -163,17 +163,6 @@ export default function Home({ navigateTo }) {
     return () => { scrollToTopRef.current = null }
   }, [scrollToTopRef, startReturn])
 
-  // Register goToWorks handler so nav "Our Work" click works from anywhere on Home
-  useEffect(() => {
-    goToWorksRef.current = () => {
-      if (phaseRef.current === 'hero' || phaseRef.current === 'exiting') {
-        startExit()
-      }
-      // Already in works/returning — do nothing
-    }
-    return () => { goToWorksRef.current = null }
-  }, [goToWorksRef, startExit])
-
   // Wheel on hero (desktop)
   useEffect(() => {
     const el = heroRef.current
@@ -249,15 +238,19 @@ export default function Home({ navigateTo }) {
       let dragging = false
       let downFromTop = false
       let lastY = 0
+      let lastDy = 0
 
       const maxScroll = () =>
         Math.max(0, content.scrollHeight - el.clientHeight)
 
-      // Smoothing per frame. Lower = slower/smoother/longer glide.
-      // 0.05 ≈ very icy (several seconds to settle); 0.12 ≈ snappier.
-      const EASE = 0.15
-      // Below this gap we consider it arrived.
+      // Two behaviors:
+      //  - While the finger is DOWN, scroll locks 1:1 to the finger (no lag,
+      //    feels immediate — this is what "fast" means).
+      //  - After RELEASE, a light momentum coast eases out over a short time.
+      // This matches the sophiehustin.com / Lenis syncTouch mobile feel.
+      const COAST_EASE = 0.12   // higher = shorter/snappier coast after release
       const SETTLE = 0.1
+      const FLICK = 1.0         // >1 throws target past finger on release for more coast
 
       const clamp = (v) => {
         if (v < 0) return 0
@@ -265,25 +258,30 @@ export default function Home({ navigateTo }) {
         return v > max ? max : v
       }
 
-      const frame = () => {
-        if (!running) return
-        // Ease actual position toward the target every frame.
-        const diff = target - scroll
-        if (Math.abs(diff) > SETTLE) {
-          scroll += diff * EASE
-        } else {
-          scroll = target
-        }
+      const draw = () => {
         content.style.transform = `translate3d(0, ${-scroll}px, 0)`
         worksScrollY.current = scroll
+      }
+
+      const frame = () => {
+        if (!running) return
+        if (!dragging) {
+          // Coast: ease actual scroll toward target only after the finger lifts.
+          const diff = target - scroll
+          if (Math.abs(diff) > SETTLE) {
+            scroll += diff * COAST_EASE
+          } else {
+            scroll = target
+          }
+          draw()
+        }
         rafRef = requestAnimationFrame(frame)
       }
       let rafRef = requestAnimationFrame(frame)
 
       const onTouchStart = (e) => {
         dragging = true
-        // Touching while it's still gliding: freeze it where it visually is,
-        // so a new touch stops the coast immediately.
+        // Stop any coast instantly where it visually is.
         target = scroll
         lastY = e.touches[0].clientY
         downFromTop = scroll <= 0.5
@@ -298,14 +296,16 @@ export default function Home({ navigateTo }) {
 
         // Pulling down while already at the very top: leave it, let touchend
         // decide whether to startReturn().
-        if (downFromTop && target <= 0.5 && dy > 0) return
+        if (downFromTop && scroll <= 0.5 && dy > 0) return
         downFromTop = false
 
-        // Push the TARGET, not the actual scroll. Multiplier controls how far
-        // the content travels per unit of finger travel while dragging. >1 makes
-        // a swipe throw the target ahead of the finger, so momentum carries after
-        // release without any velocity bookkeeping.
-        target = clamp(target - dy * 1.5)
+        // 1:1 — move both actual scroll and target with the finger, no lag.
+        scroll = clamp(scroll - dy)
+        target = scroll
+        draw()
+
+        // Remember the last finger delta so release can throw a short coast.
+        lastDy = dy
       }
 
       const onTouchEnd = () => {
@@ -313,9 +313,13 @@ export default function Home({ navigateTo }) {
         dragging = false
         if (downFromTop && scroll <= 1) {
           startReturn()
+          lastDy = 0
+          return
         }
-        // Nothing else to do: the frame loop keeps easing `scroll` toward the
-        // `target` we already threw ahead, producing the long coast.
+        // Throw the target a bit past where the finger stopped, scaled by the
+        // last flick speed, so the coast length tracks how hard you swiped.
+        target = clamp(scroll - lastDy * FLICK * 8)
+        lastDy = 0
       }
 
       el.addEventListener('touchstart', onTouchStart, { passive: true })
@@ -458,7 +462,7 @@ export default function Home({ navigateTo }) {
         {/* Right sticky label */}
         <div className="home-works-right">
           <p className="home-works-label">
-            {'Work'.split('').map((c, i) => (
+            {'Our Work'.split('').map((c, i) => (
               <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
             ))}
           </p>
