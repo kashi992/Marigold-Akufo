@@ -255,7 +255,7 @@ export default function Home({ navigateTo }) {
 
       // Smoothing per frame. Lower = slower/smoother/longer glide.
       // 0.05 ≈ very icy (several seconds to settle); 0.12 ≈ snappier.
-      const EASE = 0.06
+      const EASE = 0.10
       // Below this gap we consider it arrived.
       const SETTLE = 0.1
 
@@ -305,7 +305,7 @@ export default function Home({ navigateTo }) {
         // the content travels per unit of finger travel while dragging. >1 makes
         // a swipe throw the target ahead of the finger, so momentum carries after
         // release without any velocity bookkeeping.
-        target = clamp(target - dy * 1.15)
+        target = clamp(target - dy * 1.0)
       }
 
       const onTouchEnd = () => {
@@ -458,7 +458,7 @@ export default function Home({ navigateTo }) {
         {/* Right sticky label */}
         <div className="home-works-right">
           <p className="home-works-label">
-            {'Our Work'.split('').map((c, i) => (
+            {'Work'.split('').map((c, i) => (
               <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
             ))}
           </p>

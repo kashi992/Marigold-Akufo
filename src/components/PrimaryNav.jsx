@@ -53,7 +53,7 @@ export default function PrimaryNav({ navigateTo, navigateToWorks }) {
           </li>
           <li style={{ cursor: 'pointer' }}>
             <a onClick={() => { if (isMenuOpen) removeClass('is-menu-open'); navigateToWorks() }} style={{ cursor: 'pointer' }}>
-              <SplitText text="Our Work" />
+              <SplitText text="Work" />
             </a>
           </li>
           {[[ '/about', 'About'], ['/contact', 'Contacts']].map(([path, label]) => (
