@@ -24,7 +24,7 @@ function SplitChars({ text }) {
 
 // Phases: 'hero' | 'exiting' | 'works' | 'returning'
 export default function Home({ navigateTo }) {
-  const { addClass, removeClass, scrollToTopRef } = useSite()
+  const { addClass, removeClass, scrollToTopRef, goToWorksRef } = useSite()
   const location = useLocation()
   const startOnWorks = new URLSearchParams(location.search).get('works') === '1'
   const initialPhase = startOnWorks ? 'works' : 'hero'
@@ -162,6 +162,16 @@ export default function Home({ navigateTo }) {
     }
     return () => { scrollToTopRef.current = null }
   }, [scrollToTopRef, startReturn])
+
+  // Register goToWorks handler so nav "Work" click triggers hero→works transition
+  useEffect(() => {
+    goToWorksRef.current = () => {
+      if (phaseRef.current === 'hero' || phaseRef.current === 'exiting') {
+        startExit()
+      }
+    }
+    return () => { goToWorksRef.current = null }
+  }, [goToWorksRef, startExit])
 
   // Wheel on hero (desktop)
   useEffect(() => {
@@ -453,7 +463,7 @@ export default function Home({ navigateTo }) {
         {/* Right sticky label */}
         <div className="home-works-right">
           <p className="home-works-label">
-            {'Our Work'.split('').map((c, i) => (
+            {'Work'.split('').map((c, i) => (
               <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
             ))}
           </p>

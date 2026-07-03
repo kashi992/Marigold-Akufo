@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useSite } from '../context/SiteContext'
 
 // Splits text into individual character spans for stagger animation
@@ -16,6 +17,7 @@ function SplitText({ text }) {
 
 export default function PrimaryNav({ navigateTo, navigateToWorks }) {
   const { addClass, removeClass, toggleClass, bodyClasses } = useSite()
+  const location = useLocation()
 
   const isMenuOpen = bodyClasses.has('is-menu-open')
   const isWhite = bodyClasses.has('is-white')
@@ -33,8 +35,8 @@ export default function PrimaryNav({ navigateTo, navigateToWorks }) {
 
   return (
     <>
-      {/* Main logo — always visible top-left */}
-      <div className="logo-main">
+      {/* Main logo — hidden on home page */}
+      <div className="logo-main" style={{ display: location.pathname === '/' ? 'none' : 'flex' }}>
         <span
           style={{ cursor: 'pointer' }}
           onClick={() => handleNavLink('/')}
