@@ -14,7 +14,7 @@ function SplitText({ text }) {
   )
 }
 
-export default function PrimaryNav({ navigateTo }) {
+export default function PrimaryNav({ navigateTo, navigateToWorks }) {
   const { addClass, removeClass, toggleClass, bodyClasses } = useSite()
 
   const isMenuOpen = bodyClasses.has('is-menu-open')
@@ -46,7 +46,17 @@ export default function PrimaryNav({ navigateTo }) {
       {/* Desktop nav */}
       <nav className={`primary-nav${isWhite ? ' is-white-nav' : ''}`}>
         <ul>
-          {[['/', 'Home'], ['/about', 'About'], ['/contact', 'Contacts']].map(([path, label]) => (
+          <li style={{ cursor: 'pointer' }}>
+            <a onClick={() => handleNavLink('/')} style={{ cursor: 'pointer' }}>
+              <SplitText text="Home" />
+            </a>
+          </li>
+          <li style={{ cursor: 'pointer' }}>
+            <a onClick={() => { if (isMenuOpen) removeClass('is-menu-open'); navigateToWorks() }} style={{ cursor: 'pointer' }}>
+              <SplitText text="Our Work" />
+            </a>
+          </li>
+          {[[ '/about', 'About'], ['/contact', 'Contacts']].map(([path, label]) => (
             <li key={path} style={{ cursor: 'pointer' }}>
               <a onClick={() => handleNavLink(path)} style={{ cursor: 'pointer' }}>
                 <SplitText text={label} />
@@ -67,6 +77,7 @@ export default function PrimaryNav({ navigateTo }) {
       <nav className="mobile-menu">
         <ul>
           <li><a onClick={() => handleNavLink('/')} style={{ cursor: 'pointer' }}>Home</a></li>
+          <li><a onClick={() => { removeClass('is-menu-open'); navigateToWorks() }} style={{ cursor: 'pointer' }}>Our Work</a></li>
           <li><a onClick={() => handleNavLink('/about')} style={{ cursor: 'pointer' }}>About</a></li>
           <li><a onClick={() => handleNavLink('/contact')} style={{ cursor: 'pointer' }}>Contact</a></li>
         </ul>

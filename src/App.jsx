@@ -20,7 +20,7 @@ import Contact from './pages/Contact'
 function AppInner() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { addClass, removeClass, scrollToTopRef } = useSite()
+  const { addClass, removeClass, scrollToTopRef, goToWorksRef } = useSite()
   const transitioning = useRef(false)
   const overlayRef = useRef(null)
 
@@ -79,6 +79,16 @@ function AppInner() {
     )
   }, [navigate, location.pathname])
 
+  const navigateToWorks = useCallback(() => {
+    if (location.pathname === '/') {
+      // On Home — trigger the white-cover hero→works transition directly
+      if (goToWorksRef.current) goToWorksRef.current()
+    } else {
+      // On another page — use the standard dark overlay to navigate, landing on works
+      navigateTo('/?works=1')
+    }
+  }, [location.pathname, goToWorksRef, navigateTo])
+
   return (
     <div className="page-view">
       <CursorHider />
@@ -88,7 +98,7 @@ function AppInner() {
       <div ref={overlayRef} className="app-overlay" />
 
       <Cursor />
-      <PrimaryNav navigateTo={navigateTo} />
+      <PrimaryNav navigateTo={navigateTo} navigateToWorks={navigateToWorks} />
       <CenterNav navigateTo={navigateTo} />
       <CrossNav navigateTo={navigateTo} />
       <Footer />

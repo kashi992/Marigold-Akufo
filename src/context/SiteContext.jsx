@@ -8,6 +8,8 @@ export function SiteProvider({ children }) {
   const [currentPage, setCurrentPage] = useState('home')
   // Pages can register a custom "go to top" handler (e.g. Home uses startReturn)
   const scrollToTopRef = useRef(null)
+  // Home registers startExit here so nav can trigger the works transition from anywhere
+  const goToWorksRef = useRef(null)
 
   const addClass = useCallback((cls) => {
     setBodyClasses(prev => {
@@ -50,6 +52,7 @@ export function SiteProvider({ children }) {
       currentPage,
       setCurrentPage,
       scrollToTopRef,
+      goToWorksRef,
     }}>
       {children}
     </SiteContext.Provider>

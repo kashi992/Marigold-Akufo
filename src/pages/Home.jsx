@@ -24,7 +24,7 @@ function SplitChars({ text }) {
 
 // Phases: 'hero' | 'exiting' | 'works' | 'returning'
 export default function Home({ navigateTo }) {
-  const { addClass, removeClass, scrollToTopRef } = useSite()
+  const { addClass, removeClass, scrollToTopRef, goToWorksRef } = useSite()
   const location = useLocation()
   const startOnWorks = new URLSearchParams(location.search).get('works') === '1'
   const initialPhase = startOnWorks ? 'works' : 'hero'
@@ -162,6 +162,17 @@ export default function Home({ navigateTo }) {
     }
     return () => { scrollToTopRef.current = null }
   }, [scrollToTopRef, startReturn])
+
+  // Register goToWorks handler so nav "Our Work" click works from anywhere on Home
+  useEffect(() => {
+    goToWorksRef.current = () => {
+      if (phaseRef.current === 'hero' || phaseRef.current === 'exiting') {
+        startExit()
+      }
+      // Already in works/returning — do nothing
+    }
+    return () => { goToWorksRef.current = null }
+  }, [goToWorksRef, startExit])
 
   // Wheel on hero (desktop)
   useEffect(() => {
