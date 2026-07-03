@@ -243,14 +243,16 @@ export default function Home({ navigateTo }) {
       const maxScroll = () =>
         Math.max(0, content.scrollHeight - el.clientHeight)
 
-      // Two behaviors:
-      //  - While the finger is DOWN, scroll locks 1:1 to the finger (no lag,
-      //    feels immediate — this is what "fast" means).
-      //  - After RELEASE, a light momentum coast eases out over a short time.
-      // This matches the sophiehustin.com / Lenis syncTouch mobile feel.
-      const COAST_EASE = 0.12   // higher = shorter/snappier coast after release
-      const SETTLE = 0.1
-      const FLICK = 1.0         // >1 throws target past finger on release for more coast
+      // One painter: the rAF loop is the ONLY thing that writes the transform,
+      // so motion is locked to the display refresh (no stutter from irregular
+      // touch events). Touch handlers only ever update `target`.
+      //  - While dragging: scroll eases toward target fast (tight follow, but
+      //    still frame-synced so it stays smooth).
+      //  - After release: it keeps easing toward the thrown target = coast.
+      const DRAG_EASE = 0.35    // follow tightness while finger is down (higher = tighter/faster)
+      const COAST_EASE = 0.09   // ease-out after release (lower = longer, smoother coast)
+      const SETTLE = 0.05
+      const FLICK = 1.0         // how far a flick throws the target past the finger
 
       const clamp = (v) => {
         if (v < 0) return 0
@@ -258,30 +260,24 @@ export default function Home({ navigateTo }) {
         return v > max ? max : v
       }
 
-      const draw = () => {
-        content.style.transform = `translate3d(0, ${-scroll}px, 0)`
-        worksScrollY.current = scroll
-      }
-
       const frame = () => {
         if (!running) return
-        if (!dragging) {
-          // Coast: ease actual scroll toward target only after the finger lifts.
-          const diff = target - scroll
-          if (Math.abs(diff) > SETTLE) {
-            scroll += diff * COAST_EASE
-          } else {
-            scroll = target
-          }
-          draw()
+        const ease = dragging ? DRAG_EASE : COAST_EASE
+        const diff = target - scroll
+        if (Math.abs(diff) > SETTLE) {
+          scroll += diff * ease
+        } else {
+          scroll = target
         }
+        content.style.transform = `translate3d(0, ${-scroll}px, 0)`
+        worksScrollY.current = scroll
         rafRef = requestAnimationFrame(frame)
       }
       let rafRef = requestAnimationFrame(frame)
 
       const onTouchStart = (e) => {
         dragging = true
-        // Stop any coast instantly where it visually is.
+        // Stop any coast where it visually is so a new touch grabs it.
         target = scroll
         lastY = e.touches[0].clientY
         downFromTop = scroll <= 0.5
@@ -296,15 +292,11 @@ export default function Home({ navigateTo }) {
 
         // Pulling down while already at the very top: leave it, let touchend
         // decide whether to startReturn().
-        if (downFromTop && scroll <= 0.5 && dy > 0) return
+        if (downFromTop && target <= 0.5 && dy > 0) return
         downFromTop = false
 
-        // 1:1 — move both actual scroll and target with the finger, no lag.
-        scroll = clamp(scroll - dy)
-        target = scroll
-        draw()
-
-        // Remember the last finger delta so release can throw a short coast.
+        // Only move the TARGET. The rAF loop paints. Never draw here.
+        target = clamp(target - dy)
         lastDy = dy
       }
 
@@ -316,9 +308,8 @@ export default function Home({ navigateTo }) {
           lastDy = 0
           return
         }
-        // Throw the target a bit past where the finger stopped, scaled by the
-        // last flick speed, so the coast length tracks how hard you swiped.
-        target = clamp(scroll - lastDy * FLICK * 8)
+        // Throw the target past where the finger stopped for a brief coast.
+        target = clamp(target - lastDy * FLICK * 8)
         lastDy = 0
       }
 
