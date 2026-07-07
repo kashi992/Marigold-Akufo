@@ -78,7 +78,12 @@ export default function Cursor() {
     const onMove = (e) => {
       const el = document.elementFromPoint(e.clientX, e.clientY)
       if (!el) return
-      if (el.closest('.works-close')) {
+      if (el.closest('[data-cursor="works-cross"]')) {
+        b.classList.add('is-works-cross-over')
+        b.classList.remove('is-link-over')
+        b.classList.remove('is-cross-in-over')
+      } else if (el.closest('.works-close')) {
+        b.classList.remove('is-works-cross-over')
         b.classList.add('is-cross-in-over')
         b.classList.remove('is-link-over')
       } else if (el.closest('nav.primary-nav a, nav.mobile-menu a, footer a, .contact-link')) {
@@ -86,14 +91,17 @@ export default function Cursor() {
         b.classList.remove('is-no-cursor')
         b.classList.remove('is-link-over')
         b.classList.remove('is-cross-in-over')
+        b.classList.remove('is-works-cross-over')
       } else if (el.closest('a, button, [data-cursor="link"]')) {
         b.classList.remove('is-no-cursor')
         b.classList.add('is-link-over')
         b.classList.remove('is-cross-in-over')
+        b.classList.remove('is-works-cross-over')
       } else {
         b.classList.remove('is-no-cursor')
         b.classList.remove('is-link-over')
         b.classList.remove('is-cross-in-over')
+        b.classList.remove('is-works-cross-over')
       }
     }
     window.addEventListener('mousemove', onMove)
@@ -119,7 +127,7 @@ export default function Cursor() {
   // Clean up on page change
   useEffect(() => {
     const b = document.body
-    b.classList.remove('is-prev-over', 'is-next-over', 'is-zoom-over', 'is-cross-in-over', 'is-link-over', 'is-no-cursor')
+    b.classList.remove('is-prev-over', 'is-next-over', 'is-zoom-over', 'is-cross-in-over', 'is-link-over', 'is-no-cursor', 'is-works-cross-over')
   }, [location.pathname])
 
   return (

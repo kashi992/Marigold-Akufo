@@ -10,6 +10,12 @@ const allWorks = [
   ...drawings.map(w => ({ ...w, collection: 'drawings' })),
 ]
 
+const PERIODS = [
+  { key: 'early',        label: 'Early Works' },
+  { key: 'intermediate', label: 'Intermediate Works' },
+  { key: 'later',        label: 'Later Works' },
+]
+
 function SplitChars({ text }) {
   return (
     <>
@@ -442,32 +448,46 @@ export default function Home({ navigateTo }) {
         <div className="home-works-content">
           <div className="home-works">
             <div className="home-works-left">
-              {allWorks.map((work, idx) => (
-                <div
-                  key={`${work.collection}-${work.slug}`}
-                  className="home-work-item"
-                  data-cursor="link"
-                  onClick={() => handleWorkClick(work)}
-                  style={{ '--item-i': idx }}
-                >
-                  <div className="home-work-img">
-                    <img src={work.src} alt={work.title} loading={idx < 3 ? 'eager' : 'lazy'} draggable="false" />
+              {PERIODS.map(({ key, label }) => {
+                const periodWorks = allWorks.filter(w => w.period === key)
+                if (!periodWorks.length) return null
+                return (
+                  <div key={key} className="home-works-period">
+                    <h3 className="home-works-period-label">{label}</h3>
+                    {periodWorks.map((work, idx) => (
+                      <div
+                        key={`${work.collection}-${work.slug}`}
+                        className="home-work-item"
+                        data-cursor="link"
+                        onClick={() => handleWorkClick(work)}
+                        style={{ '--item-i': idx }}
+                      >
+                        <div className="home-work-img">
+                          <img src={work.src} alt={work.title} loading={idx < 2 ? 'eager' : 'lazy'} draggable="false" />
+                        </div>
+                        <span className="home-work-caption">{work.title}</span>
+                      </div>
+                    ))}
                   </div>
-                  <span className="home-work-caption">{work.title}</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
 
         {/* Right sticky label */}
         <div className="home-works-right">
+             <div className="flexAlign" style={{width: "100%"}}>
+              {/* <span className='home-works-cross'>x</span> */}
+              <div className="cross" onClick={startReturn} style={{ cursor: 'pointer', pointerEvents: 'auto' }} data-cursor="works-cross"><div></div><div></div></div>
+              <span className='home-works-line'></span>
+             </div>
           <p className="home-works-label">
-            {'Work'.split('').map((c, i) => (
+            {'Marigold Akufo-Addo'.split('').map((c, i) => (
               <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
             ))}
           </p>
-          <div className="home-works-line" />
+       
         </div>
       </div>
 
