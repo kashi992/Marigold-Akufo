@@ -370,7 +370,7 @@ body.is-hero-exiting nav.primary-nav ul li a .nav-char {
 /* Home local overlay — fully controlled by React, no body-class conflicts */
 .home-cover {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: #f0ebe2;
+  background: #0c0a08;
   transform: translate3d(0, -100%, 0);
   transition: transform 2s cubic-bezier(.86, 0, .07, 1);
   z-index: 50;
@@ -472,10 +472,19 @@ body.is-home-works .home-works-line { transform: scaleX(1); }
 }
 .works-exiting .home-work-item {
   opacity: 0;
-  transform: translateY(30px);
-  transition-delay: calc(0.5s + var(--item-i) * 0.08s);
+  transform: translateY(30px);  transition-delay: calc(0.5s + var(--item-i) * 0.08s);
   pointer-events: none;
 }
+
+/* ── SELECTED WORK on white background ──
+   When the works view is active it shares the site's white mode (body.is-white),
+   which handles the cream overlay + black nav/logo/burger. These rules flip the
+   works content itself from light to dark so it reads on the white section. */
+body.is-white .home-work-caption { color: #0c0a08; }
+body.is-white .home-works-period-label { color: rgba(12,10,8,0.9); }
+body.is-white .home-works-label { color: #0c0a08; }
+body.is-white .home-works-line { background: rgba(12,10,8,0.5); }
+body.is-white .home-works-right .cross div { background: #0c0a08; }
 
 /* CURSOR */
 .cursor-container { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; }
@@ -527,7 +536,7 @@ body.is-next-over .cursor-next-word { opacity: 1; }
 /* White pages (about, contact, lightbox) — dark cursor */
 body.is-no-cursor .cursor-dot { opacity: 0 !important; }
 body.is-white .cursor-dot { border-color: #0c0a08; }
-body.is-white .cursor-dot .cross-h, body.is-white .cursor-dot .cross-v { background: #0c0a08; }
+body.is-white .cursor-dot .cross-h, body.is-white .cursor-dot .cross-v { background: #f0ebe2; }
 body.is-white.is-link-over .cursor-dot { border: 25px solid #0c0a08; opacity: 1; transform: scale(1); }
 body.is-white.is-zoom-over .cursor-dot { background: #0c0a08; border-color: #0c0a08; }
 /* cross-in-over on white pages — keep cross lines white (override is-white rule) */
@@ -702,9 +711,12 @@ body.is-section .page { background: #f0ebe2; }
 
 /* ABOUT PAGE */
 .page-a-propos { background: transparent; }
-.page-a-propos .page--content { overflow-y: auto; }
+/* --about-clip = distance from top of viewport to the image's top tip (the red line).
+   Text scrolls up and disappears exactly at this line, parallel to the image tip. */
+.page-a-propos { --about-clip: 150px; }
+.page-a-propos .page--content { top: var(--about-clip); height: calc(100% - var(--about-clip)); overflow: hidden; z-index: 3; padding-top: 0;}
 .about-layout {
-  display: flex; gap: 6vw; padding: 0vh 8% 10vh;
+  display: flex; gap: 6vw; padding: 0 8% 10vh;
   min-height: 100vh; align-items: flex-start;
 }
 .about-text-col { flex: 1; min-width: 0; }
@@ -714,7 +726,7 @@ body.is-section .page { background: #f0ebe2; }
 }
 .about-para { display: inline; }
 .about-photo-col {
-  flex: 0 0 38%; position: sticky; top: 0vh;
+  flex: 0 0 38%; position: sticky; top: 0;
   align-self: flex-start;
 }
 .about-photo-wrap { width: 100%; }
@@ -757,11 +769,42 @@ body.is-contact .contact-link::before { transition-delay: .5s; transform: scaleX
 body.is-contact .contact-link:hover::before { transition-delay: 0s; transform: scaleX(0); transform-origin: right; }
 
 /* CONTACT PAGE */
-.contact-scroll-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 3; }
+.contact-scroll-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 3; scrollbar-width: none; -ms-overflow-style: none; }
+.contact-scroll-wrapper::-webkit-scrollbar { display: none; }
 .page-contact .contact { color: #0c0a08; width: 100%; padding: 20vh 15% 30vh; }
 .page-contact .contact h2 { font-size: 2.6em; font-weight: 400; line-height: 1.5; color: #0c0a08; margin: 0; }
 .page-copyright { padding: 40px 0 0; opacity: 0.4; position: absolute; left: 50px; }
 .page-copyright p { font-size: 0.7rem; letter-spacing: 0.1em; color: #0c0a08; margin: 0; }
+
+/* 404 NOT FOUND */
+.page-notfound { background: transparent; }
+.notfound {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #0c0a08; padding: 0 8%; text-align: center;
+}
+.notfound-code {
+  font-family: portrait, serif; font-size: 0.75rem; letter-spacing: 0.3em;
+  text-transform: uppercase; opacity: 0.5; margin: 0 0 24px;
+}
+.notfound-heading {
+  font-family: portrait, serif; font-weight: 400; font-size: 2.4em;
+  line-height: 1.3; margin: 0 0 40px; max-width: 620px;
+}
+.notfound-link {
+  background: none; border: none; cursor: pointer; color: #0c0a08;
+  font-family: portrait, serif; font-size: 1rem; letter-spacing: 0.05em;
+  padding: 0 0 4px; position: relative;
+}
+.notfound-link::after {
+  content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px;
+  background: #0c0a08; transform: scaleX(1); transform-origin: right center;
+  transition: transform 0.5s cubic-bezier(.19,1,.22,1);
+}
+.notfound-link:hover::after { transform: scaleX(0); transform-origin: left center; }
+@media (max-width: 768px) {
+  .notfound-heading { font-size: 1.6em; }
+}
 
 /* CONTACT FORM */
 .contact-eyebrow {
@@ -896,8 +939,9 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   .info-nav { padding: 0 16px; bottom: 24px; }
   .works-close { right: 16px; top: 24px; }
 
-  /* About */
-  .about-layout { flex-direction: column; padding: 18vh 8% 10vh; gap: 40px; }
+  /* About — image stacks below text, so clip closer to the nav line */
+  .page-a-propos { --about-clip: 70px; }
+  .about-layout { flex-direction: column; padding: 6vh 8% 10vh; gap: 40px; }
   .about-photo-col { flex: none; width: 100%; position: static; }
   .about-bio { font-size: 0.95em; }
 
@@ -945,8 +989,8 @@ body.is-white.is-contact footer ul.rs-container li a svg { fill: #f0ebe2; }
   * { cursor: auto !important; }
   a, button, [data-cursor="link"] { cursor: pointer !important; }
 
-  /* Contact form — Lenis handles scroll, wrapper stays overflow:hidden */
-  .contact-scroll-wrapper { overflow: hidden; }
+  /* Contact form — allow native touch scroll as fallback if Lenis is slow to init */
+  .contact-scroll-wrapper { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .word-clip { overflow: visible; }
 
   /* Works scroll — hide scrollbar, remove all transforms/will-change overhead */

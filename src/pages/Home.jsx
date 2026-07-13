@@ -62,6 +62,7 @@ export default function Home({ navigateTo }) {
 
     if (startOnWorks) {
       addClass('is-home-works')
+      addClass('is-white')
     } else {
       removeClass('is-home-works')
     }
@@ -75,6 +76,7 @@ export default function Home({ navigateTo }) {
       removeClass('is-home')
       removeClass('is-hero-exiting')
       removeClass('is-home-works')
+      removeClass('is-white')
     }
   }, [addClass, removeClass])
 
@@ -117,6 +119,7 @@ export default function Home({ navigateTo }) {
         // Runs exactly when overlay fully covers — swap content underneath
         setPhaseSync('works')
         addClass('is-home-works')
+        addClass('is-white')
         removeClass('is-hero-exiting')
         if (worksWrapRef.current) worksWrapRef.current.scrollTop = 0
       })
@@ -145,6 +148,7 @@ export default function Home({ navigateTo }) {
       // Runs exactly when overlay fully covers — restore hero underneath
       setPhaseSync('hero')
       removeClass('is-home-works')
+      removeClass('is-white')
       // Reset line + chars to hidden state so they can animate back in
       addClass('is-hero-exiting')
       removeClass('is-loaded')

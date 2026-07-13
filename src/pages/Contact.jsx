@@ -49,25 +49,72 @@ export default function Contact() {
     )
   }, [ready])
 
-  // Lenis smooth scroll
+  // Lenis smooth scroll — initialise only AFTER the page is ready and fonts are
+  // loaded, so Lenis measures a stable, final content height. Initialising while the
+  // transition overlay covers the page / the heading is still animating / fonts are
+  // swapping causes Lenis to capture a too-short height and lock scrolling (the
+  // intermittent "can't scroll" bug).
   useEffect(() => {
+    if (!ready) return
     const el = scrollRef.current
     if (!el) return
-    const lenis = new Lenis({
-      wrapper: el,
-      content: el.firstElementChild,
-      duration: 5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 0.4,
-      touchMultiplier: 0.8,
-    })
+
+    let lenis
     let rafId
-    function raf(time) { lenis.raf(time); rafId = requestAnimationFrame(raf) }
-    rafId = requestAnimationFrame(raf)
-    return () => { cancelAnimationFrame(rafId); lenis.destroy() }
-  }, [])
+    let ro
+    let cancelled = false
+
+    const start = () => {
+      if (cancelled) return
+      lenis = new Lenis({
+        wrapper: el,
+        content: el.firstElementChild,
+        duration: 5,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 0.4,
+        touchMultiplier: 0.8,
+      })
+      const raf = (time) => { lenis.raf(time); rafId = requestAnimationFrame(raf) }
+      rafId = requestAnimationFrame(raf)
+
+      // Force Lenis to re-measure on the next several frames. Lenis can lock scrolling
+      // if it captures a too-short content height on init (before layout/fonts fully
+      // settle); once it owns the wheel it blocks native scroll, so we must make sure
+      // it re-measures until it sees the real, scrollable height.
+      let frame = 0
+      const nudge = () => {
+        if (cancelled || !lenis) return
+        lenis.resize()
+        frame += 1
+        // Keep nudging for ~30 frames (~0.5s) — cheap, and guarantees a correct measure.
+        if (frame < 30) requestAnimationFrame(nudge)
+      }
+      requestAnimationFrame(nudge)
+
+      // Keep Lenis in sync whenever the content box actually changes size.
+      const resize = () => lenis && lenis.resize()
+      ro = new ResizeObserver(resize)
+      if (el.firstElementChild) ro.observe(el.firstElementChild)
+      window.addEventListener('resize', resize)
+      lenis.__cleanupResize = () => window.removeEventListener('resize', resize)
+    }
+
+    // Wait for fonts (portrait/serif) so line-wrapping — and therefore height — is final.
+    const fontsReady = document.fonts && document.fonts.ready
+      ? document.fonts.ready
+      : Promise.resolve()
+    // Two rAFs guarantee the page has painted at its real position (overlay lifted).
+    fontsReady.then(() => requestAnimationFrame(() => requestAnimationFrame(start)))
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(rafId)
+      if (ro) ro.disconnect()
+      if (lenis) { lenis.__cleanupResize && lenis.__cleanupResize(); lenis.destroy() }
+    }
+  }, [ready])
 
   return (
     <section className="page page-contact">

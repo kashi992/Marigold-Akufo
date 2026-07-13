@@ -16,6 +16,7 @@ import Drawings from './pages/Drawings'
 import Works from './pages/Works'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import NotFound from './pages/NotFound'
 
 function AppInner() {
   const navigate = useNavigate()
@@ -111,6 +112,7 @@ function AppInner() {
         <Route path="/drawings/:id" element={<Works collection="drawings" navigateTo={navigateTo} />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="*" element={<NotFound navigateTo={navigateTo} />} />
       </Routes>
     </div>
   )
