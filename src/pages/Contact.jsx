@@ -120,7 +120,7 @@ export default function Contact() {
     <section className="page page-contact">
       <div ref={scrollRef} className="contact-scroll-wrapper">
         <div className="contact">
-          <p className="contact-eyebrow">Artworks Consultation</p>
+          <p className="contact-eyebrow">Book Consultation</p>
           <h2 ref={h2Ref}>
             <SplitWords text="If you would like to make a general enquiry or book an appointment, please fill in the form below and we will be in touch." />
           </h2>
