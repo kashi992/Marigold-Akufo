@@ -1754,7 +1754,9 @@ body.is-section .page {
   height: 75vh;
   touch-action: none;
   object-fit: contain;
-  max-width: fit-content;
+  object-position: center;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .page--content--center.animateIn .work-single .img-container {
@@ -2769,4 +2771,125 @@ strong, b {
 }
 @media (max-width: 480px) {
   .logo-sig { height: 26px; }
+}
+
+/* Works list — signature in place of the name */
+.home-works-sig {
+  position: relative;
+  display: block;
+  width: clamp(260px, 24vw, 440px);
+  line-height: 0;
+  font-size: 0;
+}
+
+.home-works-sig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: opacity 0.4s ease-out;
+}
+
+.home-works-sig .sig-dark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+body.is-white .home-works-sig .sig-light { opacity: 0; }
+body.is-white .home-works-sig .sig-dark { opacity: 1; }
+
+@media (max-width: 1024px) {
+  .home-works-sig { width: clamp(200px, 26vw, 300px); }
+}
+
+/* Single artwork — title & details (dark text: the page is cream) */
+.work-info {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #0c0a08;
+}
+
+.work-info-title {
+  font-size: 0.95rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.work-info-details {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.info-nav a {
+  color: #0c0a08;
+}
+
+/* Single artwork on phones — keep title/info clear of the social icons */
+@media (max-width: 768px) {
+  .info-nav {
+    bottom: 92px;
+    padding: 0 20px;
+    align-items: flex-end;
+  }
+
+  .work-info-title {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+  }
+
+  .work-info-details {
+    font-size: 0.68rem;
+    letter-spacing: 1.2px;
+  }
+
+  .info-nav a {
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+  }
+}
+
+/* Single artwork — prev · title/info · next grouped in the centre,
+   so they never collide with the social icons in the bottom-right corner */
+.info-nav {
+  justify-content: center;
+  align-items: flex-end;
+  gap: 48px;
+  padding: 0 24px;
+}
+
+.info-nav > div {
+  flex: 0 0 auto !important;
+}
+
+.info-nav > div:first-child,
+.info-nav > div:last-child {
+  min-width: 56px;
+}
+
+.info-nav > div:first-child { text-align: right !important; }
+.info-nav > div:last-child { text-align: left !important; }
+
+@media (max-width: 768px) {
+  .info-nav {
+    gap: 16px;
+    padding: 0 12px;
+  }
+
+  .info-nav > div:first-child,
+  .info-nav > div:last-child {
+    min-width: 44px;
+  }
+
+  .work-info {
+    flex: 1 1 auto !important;
+    min-width: 0;
+  }
 }

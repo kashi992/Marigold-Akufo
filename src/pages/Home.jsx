@@ -493,10 +493,9 @@ export default function Home({ navigateTo }) {
               <div className="cross" onClick={startReturn} style={{ cursor: 'pointer', pointerEvents: 'auto' }} data-cursor="works-cross"><div></div><div></div></div>
               <span className='home-works-line'></span>
              </div>
-          <p className="home-works-label">
-            {'Marigold Akufo-Addo'.split('').map((c, i) => (
-              <span key={i} className="label-char" style={{ '--i': i }}>{c === ' ' ? '\u00A0' : c}</span>
-            ))}
+          <p className="home-works-label home-works-sig">
+            <img className="sig-light" src="/images/home-signature.png" alt="Marigold Akufo-Addo" draggable="false" />
+            <img className="sig-dark" src="/images/home-signature-dark.png" alt="" aria-hidden="true" draggable="false" />
           </p>
        
         </div>

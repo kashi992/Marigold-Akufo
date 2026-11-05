@@ -14,7 +14,6 @@ export default function Works({ collection, navigateTo }) {
   const { id } = useParams()
   const { addClass, removeClass } = useSite()
   const containerRef = useRef(null)
-  const exitingRef = useRef(false)
   const [animated, setAnimated] = useState(false)
 
   const bodyGalleryClass = collection === 'paintings' ? 'is-peintures' : 'is-sculptures'
@@ -40,7 +39,6 @@ export default function Works({ collection, navigateTo }) {
   // GSAP enter animation — runs every time id changes
   useEffect(() => {
     if (!containerRef.current) return
-    exitingRef.current = false
     setAnimated(true)
 
     gsap.fromTo(
@@ -51,9 +49,12 @@ export default function Works({ collection, navigateTo }) {
   }, [id])
 
   // Navigate to prev/next with GSAP exit → onComplete navigates
-  const goTo = useCallback((w, dir) => {
-    if (!w || exitingRef.current) return
-    exitingRef.current = true
+  // NOTE: no local "already leaving" lock here. navigateTo() already ignores calls while a
+  // page transition is running. A local lock was only cleared when the artwork changed, so
+  // a tap/swipe made mid-transition (ignored by navigateTo) left it stuck and killed
+  // next/prev/swipe for good.
+  const goTo = useCallback((w) => {
+    if (!w) return
     navigateTo(`/${w.collection}/${w.slug}`)
   }, [navigateTo])
 
@@ -132,10 +133,13 @@ export default function Works({ collection, navigateTo }) {
                 <a className="ui-prev" onClick={() => goTo(prevWork, 'prev')} style={{ cursor: 'none' }}>prev</a>
               )}
             </div>
-            <div style={{ textAlign: 'center', flex: 2 }}>
-              <span style={{ fontSize: '0.75rem', letterSpacing: '2px', textTransform: 'uppercase', opacity: 0.7 }}>
-                {[work.title, [work.medium, work.year].filter(Boolean).join(', '), work.dimensions].filter(Boolean).join(' — ')}
-              </span>
+            <div className="work-info">
+              <span className="work-info-title">{work.title}</span>
+              {(work.medium || work.year || work.dimensions) && (
+                <span className="work-info-details">
+                  {[[work.medium, work.year].filter(Boolean).join(', '), work.dimensions].filter(Boolean).join(' · ')}
+                </span>
+              )}
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>
               {nextWork && (
