@@ -37,12 +37,23 @@ export default function PrimaryNav({ navigateTo, navigateToWorks }) {
     <>
       {/* Main logo — hidden on home page */}
       <div className="logo-main" style={{ display: location.pathname === '/' ? 'none' : 'flex' }}>
-        <span
+        <img
+          className="logo-sig logo-sig--light"
+          src="/images/home-signature.png"
+          alt="Marigold Akufo-Addo"
+          draggable="false"
           style={{ cursor: 'pointer' }}
           onClick={() => handleNavLink('/')}
-        >
-          Marigold
-        </span>
+        />
+        <img
+          className="logo-sig logo-sig--dark"
+          src="/images/home-signature-dark.png"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          style={{ cursor: 'pointer' }}
+          onClick={() => handleNavLink('/')}
+        />
       </div>
 
       {/* Desktop nav */}

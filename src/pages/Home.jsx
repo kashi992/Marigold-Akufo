@@ -436,9 +436,9 @@ export default function Home({ navigateTo }) {
       >
         <div className="home-hero-bg" style={{ backgroundImage: `url('/images/hero.jpg')` }} />
         <div className="home-hero-center">
-          <p className="home-hero-title">
-            <SplitChars text="marigold akufo-addo" />
-          </p>
+          <div className="home-hero-signature">
+            <img src="/images/home-signature.png" alt="Marigold Akufo-Addo" draggable="false" />
+          </div>
           <div className="home-hero-line" />
         </div>
       </div>
@@ -469,7 +469,14 @@ export default function Home({ navigateTo }) {
                         <div className="home-work-img">
                           <img src={work.src} alt={work.title} loading={idx < 2 ? 'eager' : 'lazy'} draggable="false" />
                         </div>
-                        <span className="home-work-caption">{work.title}</span>
+                        <span className="home-work-caption">
+                          {work.title}
+                          {(work.medium || work.year || work.dimensions) && (
+                            <span className="home-work-details">
+                              {[[work.medium, work.year].filter(Boolean).join(', '), work.dimensions].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>

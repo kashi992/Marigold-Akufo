@@ -134,8 +134,7 @@ export default function Works({ collection, navigateTo }) {
             </div>
             <div style={{ textAlign: 'center', flex: 2 }}>
               <span style={{ fontSize: '0.75rem', letterSpacing: '2px', textTransform: 'uppercase', opacity: 0.7 }}>
-                {work.title} — {work.medium}, {work.year}
-                {work.dimensions ? ` — ${work.dimensions}` : ''}
+                {[work.title, [work.medium, work.year].filter(Boolean).join(', '), work.dimensions].filter(Boolean).join(' — ')}
               </span>
             </div>
             <div style={{ flex: 1, textAlign: 'right' }}>

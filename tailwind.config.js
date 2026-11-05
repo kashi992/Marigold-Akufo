@@ -11,7 +11,7 @@ export default {
         cream: '#f0ebe2',
       },
       fontFamily: {
-        display: ['Cormorant Garamond', 'Georgia', 'serif'],
+        display: ['Jost', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       letterSpacing: {
         widest: '0.25em',

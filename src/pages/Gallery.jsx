@@ -81,7 +81,7 @@ export default function Gallery({ works, type, navigateTo }) {
                 <div className="img-content">
                   <div className="img-container" style={{ backgroundImage: `url(${work.src})` }} />
                 </div>
-                <span className="title-art">{work.title} — {work.dimensions}</span>
+                <span className="title-art">{[work.title, work.dimensions].filter(Boolean).join(' — ')}</span>
               </div>
             </a>
           ))}

@@ -114,7 +114,7 @@ export default function About() {
               ))}
             </p>
             <div ref={sigRef} className="about-signature" style={{ opacity: 0 }}>
-              <img src="/images/signature.webp" alt="Marigold Akufo-Addo signature" draggable="false" />
+              <img src="/images/home-signature-dark.png" alt="Marigold Akufo-Addo signature" draggable="false" />
             </div>
           </div>
 
